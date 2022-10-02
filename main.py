@@ -80,7 +80,7 @@ def make_language_dict_json(lang: str):
 @app.get("/dict/{lang}.json", tags=["dictionary"])
 async def download_language_dict_json(lang: str):
     lang = lang.lower()
-    if lang not in ACCEPTED_LANGUAGES:
+    if lang not in ACCEPTED_LANGUAGES and lang != "all":
         raise HTTPException(status_code=403, detail="Language not supported")
 
     if os.path.exists("dict/" + lang + ".json"):
@@ -225,8 +225,19 @@ def force_refresh_local_data():
                         this_item_id, lang_dict[key_name], key_name)
                     db.execute(sql2)
 
+    # Make dict files for each language
     for language in ACCEPTED_LANGUAGES:
         make_language_dict_json(language)
+        print("Successfully made dict file for %s" % language)
+
+    # Make a dict for all languages
+    all_language_dict = {}
+    for language in ACCEPTED_LANGUAGES:
+        this_lang_dict = json.loads(open("dict/" + language + ".json", "r", encoding="utf-8").read())
+        all_language_dict[language] = this_lang_dict
+        print("Loaded " + language + " dict")
+    open("dict/all.json", "w", encoding="utf-8").write(json.dumps(all_language_dict, ensure_ascii=False, indent=4))
+    print("Successfully generated dict/all.json")
 
 
 @app.get("/refresh/{token}", tags=["refresh"])
