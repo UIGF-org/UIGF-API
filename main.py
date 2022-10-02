@@ -22,14 +22,23 @@ async def translate(lang: str, word: str):
         raise HTTPException(status_code=403, detail="Language not supported")
 
     if word.startswith("[") and word.endswith("]"):
+        # Make list with original order
+        word_list = json.loads(word.replace(',', '","').replace('[', '["').replace(']', '"]'))
+        print(word_list)
+        # Generate temp dict for look up
         word = word.strip('][')
         word = '"' + word.replace(',', '","') + '"'
-        sql = r"SELECT item_id FROM i18n_dict WHERE %s IN (%s)" % (lang, word.replace("'", "\\'"))
+        sql = r"SELECT %s, item_id FROM i18n_dict WHERE %s IN (%s)" % (lang, lang, word.replace("'", "\\'"))
+        # This SQL result will return all text and their ID in a dict, no duplicate keys
         result = db.fetch_all(sql)
         if result is None:
             raise HTTPException(status_code=404, detail="Hash ID not found")
         else:
-            return {"item_id": [result[i][0] for i in range(len(result))]}
+            # Translate the list with the dict
+            result_dict = {result[i][0]: result[i][1] for i in range(len(result)) if result[i][0] != ""}
+            # Return 0 if not found
+            result_list = [result_dict[word] if word in result_dict.keys() else 0 for word in word_list]
+            return {"item_id": result_list}
     else:
         sql = r"SELECT item_id FROM i18n_dict WHERE %s='%s'" % (lang, word.replace("'", "\\'"))
         result = db.fetch_one(sql)
