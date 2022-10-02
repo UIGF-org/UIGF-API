@@ -52,7 +52,7 @@ async def translate(lang: str, word: str):
 async def translate_generic(word: str):
     sql = r"SELECT item_id, lang FROM generic_dict WHERE text='%s'" % word.replace("'", "\\'")
     result = db.fetch_all(sql)
-    if result is None:
+    if len(result) == 0:
         raise HTTPException(status_code=404, detail="Hash ID not found")
     else:
         return {"item_id": result[0][0],
