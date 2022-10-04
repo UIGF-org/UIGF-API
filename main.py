@@ -4,7 +4,7 @@ from MysqlConn import MysqlConn
 import json
 import os
 import requests
-from config.api_config import ACCEPTED_LANGUAGES, TOKEN, DOCS_URL
+from config.api_config import ACCEPTED_LANGUAGES, TOKEN, DOCS_URL, LANGUAGE_PAIRS
 
 app = FastAPI(docs_url=DOCS_URL, redoc_url=None)
 db = MysqlConn()
@@ -20,6 +20,8 @@ async def translate(lang: str, word: str):
     lang = lang.lower()
     if lang not in ACCEPTED_LANGUAGES:
         raise HTTPException(status_code=403, detail="Language not supported")
+    if len(lang) == 5:
+        lang = LANGUAGE_PAIRS[lang]
 
     if word.startswith("[") and word.endswith("]"):
         # Make list with original order
@@ -56,13 +58,15 @@ async def translate_generic(word: str):
         raise HTTPException(status_code=404, detail="Hash ID not found")
     else:
         return {"item_id": result[0][0],
-                "lang": [result[i][1] for i in range(len(result))]}
+                "lang": [LANGUAGE_PAIRS[result[i][1]] for i in range(len(result))]}
 
 
 def make_language_dict_json(lang: str):
     lang = lang.lower()
     if lang not in ACCEPTED_LANGUAGES:
         return False
+    if len(lang) == 5:
+        lang = LANGUAGE_PAIRS[lang]
     sql = r"SELECT item_id, %s FROM i18n_dict" % lang.lower()
     result = db.fetch_all(sql)
     if result is None:
@@ -71,7 +75,7 @@ def make_language_dict_json(lang: str):
         try:
             os.mkdir("dict")
         except FileExistsError:
-            print("dict folder already exists")
+            pass
         lang_dict = {result[i][1]: result[i][0] for i in range(len(result)) if result[i][1] != ""}
         with open("dict/" + lang + ".json", 'w+', encoding='utf-8') as f:
             json.dump(lang_dict, f, indent=4, separators=(',', ': '), ensure_ascii=False)
@@ -82,13 +86,15 @@ async def download_language_dict_json(lang: str):
     lang = lang.lower()
     if lang not in ACCEPTED_LANGUAGES and lang != "all":
         raise HTTPException(status_code=403, detail="Language not supported")
+    if len(lang) == 5:
+        lang = LANGUAGE_PAIRS[lang]
 
     if os.path.exists("dict/" + lang + ".json"):
-        return FileResponse(path="dict/" + lang + ".json", filename=lang + ".json", media_type="application/json")
+        return FileResponse(path="dict/" + lang + ".json", filename=LANGUAGE_PAIRS[lang] + ".json", media_type="application/json")
     else:
         make_dict_result = make_language_dict_json(lang)
         if make_dict_result:
-            return FileResponse(path="dict/" + lang + ".json", filename=lang + ".json", media_type="application/json")
+            return FileResponse(path="dict/" + lang + ".json", filename=LANGUAGE_PAIRS[lang] + ".json", media_type="application/json")
         else:
             raise HTTPException(status_code=400, detail="Failed to create dictionary, please try again later")
 
@@ -227,15 +233,17 @@ def force_refresh_local_data():
 
     # Make dict files for each language
     for language in ACCEPTED_LANGUAGES:
-        make_language_dict_json(language)
+        if len(language) != 5:
+            make_language_dict_json(language)
         print("Successfully made dict file for %s" % language)
 
     # Make a dict for all languages
     all_language_dict = {}
     for language in ACCEPTED_LANGUAGES:
-        this_lang_dict = json.loads(open("dict/" + language + ".json", "r", encoding="utf-8").read())
-        all_language_dict[language] = this_lang_dict
-        print("Loaded " + language + " dict")
+        if len(language) != 5:
+            this_lang_dict = json.loads(open("dict/" + language + ".json", "r", encoding="utf-8").read())
+            all_language_dict[language] = this_lang_dict
+            print("Loaded " + language + " dict")
     open("dict/all.json", "w", encoding="utf-8").write(json.dumps(all_language_dict, ensure_ascii=False, indent=4))
     print("Successfully generated dict/all.json")
 
