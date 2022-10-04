@@ -27,7 +27,8 @@ LANGUAGE_PAIRS = {
     "pt-pt": "pt",
     "ru-ru": "ru",
     "th-th": "th",
-    "vi-vn": "vi"
+    "vi-vn": "vi",
+    "all": "all"
 }
 TOKEN = "5XKknUbCQCKq4KDC5HPLheMZ"  # change this
 DOCS_URL = "/api/v1/docs"  # change this
