@@ -100,36 +100,36 @@ async def download_language_dict_json(lang: str):
 
 
 def force_refresh_local_data():
-    AvatarExcelConfigData = json.loads(requests.get("https://github.com/Dimbreath/GenshinData/raw/master" \
-                                                    "/ExcelBinOutput/AvatarExcelConfigData.json").text)
-    WeaponExcelConfigData = json.loads(requests.get("https://github.com/Dimbreath/GenshinData/raw/master" \
+    AvatarExcelConfigData = json.loads(requests.get("https://genshin-data.uigf.org/d/latest/"
+                                                    "ExcelBinOutput/AvatarExcelConfigData.json").text)
+    WeaponExcelConfigData = json.loads(requests.get("https://genshin-data.uigf.org/d/latest/" 
                                                     "/ExcelBinOutput/WeaponExcelConfigData.json").text)
     chs_dict = json.loads(
-        requests.get("https://github.com/Dimbreath/GenshinData/raw/master/TextMap/TextMapCHS.json").text)
+        requests.get("https://genshin-data.uigf.org/d/latest/TextMap/TextMapCHS.json").text)
     cht_dict = json.loads(
-        requests.get("https://github.com/Dimbreath/GenshinData/raw/master/TextMap/TextMapCHT.json").text)
+        requests.get("https://genshin-data.uigf.org/d/latest/TextMap/TextMapCHT.json").text)
     de_dict = json.loads(
-        requests.get("https://github.com/Dimbreath/GenshinData/raw/master/TextMap/TextMapDE.json").text)
+        requests.get("https://genshin-data.uigf.org/d/latest/TextMap/TextMapDE.json").text)
     en_dict = json.loads(
-        requests.get("https://github.com/Dimbreath/GenshinData/raw/master/TextMap/TextMapEN.json").text)
+        requests.get("https://genshin-data.uigf.org/d/latest/TextMap/TextMapEN.json").text)
     es_dict = json.loads(
-        requests.get("https://github.com/Dimbreath/GenshinData/raw/master/TextMap/TextMapES.json").text)
+        requests.get("https://genshin-data.uigf.org/d/latest/TextMap/TextMapES.json").text)
     fr_dict = json.loads(
-        requests.get("https://github.com/Dimbreath/GenshinData/raw/master/TextMap/TextMapFR.json").text)
+        requests.get("https://genshin-data.uigf.org/d/latest/TextMap/TextMapFR.json").text)
     id_dict = json.loads(
-        requests.get("https://github.com/Dimbreath/GenshinData/raw/master/TextMap/TextMapID.json").text)
+        requests.get("https://genshin-data.uigf.org/d/latest/TextMap/TextMapID.json").text)
     jp_dict = json.loads(
-        requests.get("https://github.com/Dimbreath/GenshinData/raw/master/TextMap/TextMapJP.json").text)
+        requests.get("https://genshin-data.uigf.org/d/latest/TextMap/TextMapJP.json").text)
     kr_dict = json.loads(
-        requests.get("https://github.com/Dimbreath/GenshinData/raw/master/TextMap/TextMapKR.json").text)
+        requests.get("https://genshin-data.uigf.org/d/latest/TextMap/TextMapKR.json").text)
     pt_dict = json.loads(
-        requests.get("https://github.com/Dimbreath/GenshinData/raw/master/TextMap/TextMapPT.json").text)
+        requests.get("https://genshin-data.uigf.org/d/latest/TextMap/TextMapPT.json").text)
     ru_dict = json.loads(
-        requests.get("https://github.com/Dimbreath/GenshinData/raw/master/TextMap/TextMapRU.json").text)
+        requests.get("https://genshin-data.uigf.org/d/latest/TextMap/TextMapRU.json").text)
     th_dict = json.loads(
-        requests.get("https://github.com/Dimbreath/GenshinData/raw/master/TextMap/TextMapTH.json").text)
+        requests.get("https://genshin-data.uigf.org/d/latest/TextMap/TextMapTH.json").text)
     vi_dict = json.loads(
-        requests.get("https://github.com/Dimbreath/GenshinData/raw/master/TextMap/TextMapVI.json").text)
+        requests.get("https://genshin-data.uigf.org/d/latest/TextMap/TextMapVI.json").text)
 
     item_list = [AvatarExcelConfigData, WeaponExcelConfigData]
 
