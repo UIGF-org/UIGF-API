@@ -153,3 +153,5 @@ cython_debug/
 /config/*
 /dict/*
 tester.py
+/config/db.json
+/dict/README.md
