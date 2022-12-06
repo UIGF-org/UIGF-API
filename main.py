@@ -2,12 +2,11 @@ from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.responses import RedirectResponse, FileResponse
 from MysqlConn import MysqlConn
 import json
-import os
 import requests
-from config.api_config import ACCEPTED_LANGUAGES, TOKEN, DOCS_URL, LANGUAGE_PAIRS
+from api_config import *
 
 app = FastAPI(docs_url=DOCS_URL, redoc_url=None)
-db = MysqlConn()
+db = MysqlConn(DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME)
 
 
 @app.get("/", response_class=RedirectResponse, status_code=302)

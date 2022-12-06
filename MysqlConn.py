@@ -1,18 +1,14 @@
 import pymysql
-import json
-
 
 class MysqlConn:
-    def __init__(self):
+    def __init__(self, host, port, user, password, database):
         self.conn = None
         self.cursor = None
-        with open("config/db.json", "r") as f:
-            mysql_config = json.loads(f.read())
-        self.__host = mysql_config["host"]
-        self.__port = mysql_config["port"]
-        self.__user = mysql_config["user"]
-        self.__password = mysql_config["password"]
-        self.__database = mysql_config["database"]
+        self.__host = host
+        self.__port = port
+        self.__user = user
+        self.__password = password
+        self.__database = database
 
     def connect(self):
         try:
