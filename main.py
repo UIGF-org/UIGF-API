@@ -48,6 +48,22 @@ async def translate(lang: str, word: str):
         else:
             return {"item_id": result[0]}
 
+@app.get("/reverse-translate/{lang}/{id}", tags=["translate"])
+async def translate(lang: str, id: int):
+    lang = lang.lower()
+    if lang not in ACCEPTED_LANGUAGES:
+        raise HTTPException(status_code=403, detail="Language not supported")
+    if len(lang) == 5:
+        lang = LANGUAGE_PAIRS[lang]
+
+    sql = r"SELECT %s FROM i18n_dict WHERE %s='%s'" % (lang, "item_id", id)
+    print(sql)
+    result = db.fetch_one(sql)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Word at this ID not found")
+    else:
+        return {"item_id": result[0]}
+
 
 @app.get("/generic-translate/{word}", tags=["translate"])
 async def translate_generic(word: str):
