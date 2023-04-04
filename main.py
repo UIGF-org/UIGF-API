@@ -48,6 +48,7 @@ async def translate(lang: str, word: str):
         else:
             return {"item_id": result[0]}
 
+
 @app.get("/reverse-translate/{lang}/{id}", tags=["translate"])
 async def translate(lang: str, id: int):
     lang = lang.lower()
@@ -105,11 +106,13 @@ async def download_language_dict_json(lang: str):
         lang = LANGUAGE_PAIRS[lang]
 
     if os.path.exists("dict/" + lang + ".json"):
-        return FileResponse(path="dict/" + lang + ".json", filename=LANGUAGE_PAIRS[lang] + ".json", media_type="application/json")
+        return FileResponse(path="dict/" + lang + ".json", filename=LANGUAGE_PAIRS[lang] + ".json",
+                            media_type="application/json")
     else:
         make_dict_result = make_language_dict_json(lang)
         if make_dict_result:
-            return FileResponse(path="dict/" + lang + ".json", filename=LANGUAGE_PAIRS[lang] + ".json", media_type="application/json")
+            return FileResponse(path="dict/" + lang + ".json", filename=LANGUAGE_PAIRS[lang] + ".json",
+                                media_type="application/json")
         else:
             raise HTTPException(status_code=400, detail="Failed to create dictionary, please try again later")
 
@@ -117,7 +120,7 @@ async def download_language_dict_json(lang: str):
 def force_refresh_local_data():
     AvatarExcelConfigData = json.loads(requests.get("https://genshin-data.uigf.org/d/latest/"
                                                     "ExcelBinOutput/AvatarExcelConfigData.json").text)
-    WeaponExcelConfigData = json.loads(requests.get("https://genshin-data.uigf.org/d/latest/" 
+    WeaponExcelConfigData = json.loads(requests.get("https://genshin-data.uigf.org/d/latest/"
                                                     "/ExcelBinOutput/WeaponExcelConfigData.json").text)
     chs_dict = json.loads(
         requests.get("https://genshin-data.uigf.org/d/latest/TextMap/TextMapCHS.json").text)
