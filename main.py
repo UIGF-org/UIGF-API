@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
 from fastapi.responses import RedirectResponse, FileResponse
 from MysqlConn import MysqlConn
 import json
@@ -14,56 +14,65 @@ async def root():
     return "https://uigf.org"
 
 
-@app.get("/translate/{lang}/{word}", tags=["translate"])
-async def translate(lang: str, word: str):
+@app.post("/translate/", tags=["translate"])
+async def translate(request: Request):
+    # Handle Parameters
+    request = await request.json()
+    translate_type = request.get("type")
+    lang = request.get("lang")
     lang = lang.lower()
     if lang not in ACCEPTED_LANGUAGES:
         raise HTTPException(status_code=403, detail="Language not supported")
     if len(lang) == 5:
         lang = LANGUAGE_PAIRS[lang]
 
-    if word.startswith("[") and word.endswith("]"):
-        # Make list with original order
-        word_list = json.loads(word.replace(',', '","').replace('[', '["').replace(']', '"]'))
-        print(word_list)
-        # Generate temp dict for look up
-        word = word.strip('][')
-        word = '"' + word.replace(',', '","') + '"'
-        sql = r"SELECT %s, item_id FROM i18n_dict WHERE %s IN (%s)" % (lang, lang, word.replace("'", "\\'"))
-        # This SQL result will return all text and their ID in a dict, no duplicate keys
-        result = db.fetch_all(sql)
-        if result is None:
-            raise HTTPException(status_code=404, detail="Hash ID not found")
+    if translate_type == "normal":
+        word = request.get("item_name")
+        if word.startswith("[") and word.endswith("]"):
+            # Make list with original order
+            word_list = json.loads(word.replace(',', '","').replace('[', '["').replace(']', '"]'))
+            # Generate temp dict for look up
+            word = word.strip('][')
+            word = '"' + word.replace(',', '","') + '"'
+            sql = r"SELECT %s, item_id FROM i18n_dict WHERE %s IN (%s)" % (lang, lang, word.replace("'", "\\'"))
+            # This SQL result will return all text and their ID in a dict, no duplicate keys
+            result = db.fetch_all(sql)
+            if result is None:
+                raise HTTPException(status_code=404, detail="Hash ID not found")
+            else:
+                # Translate the list with the dict
+                result_dict = {result[i][0]: result[i][1] for i in range(len(result)) if result[i][0] != ""}
+                # Return 0 if not found
+                result_list = [result_dict[word] if word in result_dict.keys() else 0 for word in word_list]
+                return {"item_id": result_list}
         else:
-            # Translate the list with the dict
-            result_dict = {result[i][0]: result[i][1] for i in range(len(result)) if result[i][0] != ""}
-            # Return 0 if not found
-            result_list = [result_dict[word] if word in result_dict.keys() else 0 for word in word_list]
-            return {"item_id": result_list}
-    else:
-        sql = r"SELECT item_id FROM i18n_dict WHERE %s='%s'" % (lang, word.replace("'", "\\'"))
-        result = db.fetch_one(sql)
-        if result is None:
-            raise HTTPException(status_code=404, detail="Hash ID not found")
+            sql = r"SELECT item_id FROM i18n_dict WHERE %s='%s' LIMIT 1" % (lang, word.replace("'", "\\'"))
+            result = db.fetch_one(sql)
+            if result is None:
+                raise HTTPException(status_code=404, detail="Hash ID not found")
+            else:
+                return {"item_id": result[0]}
+    elif translate_type == "reverse":
+        item_id = request.get("item_id")
+        if item_id.startswith("[") and item_id.endswith("]"):
+            item_id_list = json.loads(item_id)
+            item_id = item_id.replace("[", "").replace("]", "")
+            sql = r"SELECT item_id, %s FROM i18n_dict WHERE item_id IN (%s)" % (lang, item_id.replace("'", "\\'"))
+            result = db.fetch_all(sql)
+            this_request_dict = {item[0]: item[1] for item in result}
+            return_list = [this_request_dict[item_id] if item_id in this_request_dict.keys()
+                           else "" for item_id in item_id_list]
+            return {"item_name": return_list}
         else:
-            return {"item_id": result[0]}
-
-
-@app.get("/reverse-translate/{lang}/{id}", tags=["translate"])
-async def translate(lang: str, id: int):
-    lang = lang.lower()
-    if lang not in ACCEPTED_LANGUAGES:
-        raise HTTPException(status_code=403, detail="Language not supported")
-    if len(lang) == 5:
-        lang = LANGUAGE_PAIRS[lang]
-
-    sql = r"SELECT %s FROM i18n_dict WHERE %s='%s'" % (lang, "item_id", id)
-    print(sql)
-    result = db.fetch_one(sql)
-    if result is None:
-        raise HTTPException(status_code=404, detail="Word at this ID not found")
+            sql = r"SELECT %s FROM i18n_dict WHERE item_id='%s' LIMIT 1" % (lang, item_id)
+            print(sql)
+            result = db.fetch_one(sql)
+            if result is None:
+                raise HTTPException(status_code=404, detail="Word at this ID not found")
+            else:
+                return {"item_name": result[0]}
     else:
-        return {"item_id": result[0]}
+        raise HTTPException(status_code=403, detail="Translate type not supported")
 
 
 @app.get("/generic-translate/{word}", tags=["translate"])
