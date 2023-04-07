@@ -75,7 +75,7 @@ async def translate(request: Request):
         raise HTTPException(status_code=403, detail="Translate type not supported")
 
 
-@app.get("/generic-translate/{word}", tags=["translate"])
+@app.get("/identify/{word}", tags=["translate"])
 async def translate_generic(word: str):
     sql = r"SELECT item_id, lang FROM generic_dict WHERE text='%s'" % word.replace("'", "\\'")
     result = db.fetch_all(sql)
