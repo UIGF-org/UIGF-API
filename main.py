@@ -157,6 +157,8 @@ def force_refresh_local_data():
         requests.get("https://genshin-data.uigf.org/d/latest/TextMap/TextMapTH.json").text)
     vi_dict = json.loads(
         requests.get("https://genshin-data.uigf.org/d/latest/TextMap/TextMapVI.json").text)
+    dict_list = [chs_dict, cht_dict, de_dict, en_dict, es_dict, fr_dict, id_dict,
+                 jp_dict, kr_dict, pt_dict, ru_dict, th_dict, vi_dict]
 
     item_list = [AvatarExcelConfigData, WeaponExcelConfigData]
 
@@ -174,82 +176,33 @@ def force_refresh_local_data():
     # Item list has weapon list and character list
     for this_list in item_list:
         for item in this_list:
-            this_name_hash_id = int(item["nameTextMapHash"])
+            this_name_hash_id = str(int(item["nameTextMapHash"]))
             this_item_id = int(item["id"])
-            try:
-                chs_name = chs_dict[str(this_name_hash_id)].replace("'", "\\'")
-            except KeyError:
-                chs_name = ""
-            try:
-                cht_name = cht_dict[str(this_name_hash_id)].replace("'", "\\'")
-            except KeyError:
-                cht_name = ""
-            try:
-                de_name = de_dict[str(this_name_hash_id)].replace("'", "\\'")
-            except KeyError:
-                de_name = ""
-            try:
-                en_name = en_dict[str(this_name_hash_id)].replace("'", "\\'")
-            except KeyError:
-                en_name = ""
-            try:
-                es_name = es_dict[str(this_name_hash_id)].replace("'", "\\'")
-            except KeyError:
-                es_name = ""
-            try:
-                fr_name = fr_dict[str(this_name_hash_id)].replace("'", "\\'")
-            except KeyError:
-                fr_name = ""
-            try:
-                id_name = id_dict[str(this_name_hash_id)].replace("'", "\\'")
-            except KeyError:
-                id_name = ""
-            try:
-                jp_name = jp_dict[str(this_name_hash_id)].replace("'", "\\'")
-            except KeyError:
-                jp_name = ""
-            try:
-                kr_name = kr_dict[str(this_name_hash_id)].replace("'", "\\'")
-            except KeyError:
-                kr_name = ""
-            try:
-                pt_name = pt_dict[str(this_name_hash_id)].replace("'", "\\'")
-            except KeyError:
-                pt_name = ""
-            try:
-                ru_name = ru_dict[str(this_name_hash_id)].replace("'", "\\'")
-            except KeyError:
-                ru_name = ""
-            try:
-                th_name = th_dict[str(this_name_hash_id)].replace("'", "\\'")
-            except KeyError:
-                th_name = ""
-            try:
-                vi_name = vi_dict[str(this_name_hash_id)].replace("'", "\\'")
-            except KeyError:
-                vi_name = ""
+            name_list = [
+                lang_dict[this_name_hash_id].replace("'", "\\'") if this_name_hash_id in lang_dict.keys() else "" for
+                lang_dict in dict_list]
             lang_dict = {
-                "chs": chs_name,
-                "cht": cht_name,
-                "de": de_name,
-                "en": en_name,
-                "es": es_name,
-                "fr": fr_name,
-                "id": id_name,
-                "jp": jp_name,
-                "kr": kr_name,
-                "pt": pt_name,
-                "ru": ru_name,
-                "th": th_name,
-                "vi": vi_name
+                "chs": name_list[0],
+                "cht": name_list[1],
+                "de": name_list[2],
+                "en": name_list[3],
+                "es": name_list[4],
+                "fr": name_list[5],
+                "id": name_list[6],
+                "jp": name_list[7],
+                "kr": name_list[8],
+                "pt": name_list[9],
+                "ru": name_list[10],
+                "th": name_list[11],
+                "vi": name_list[12]
             }
 
             sql1 = r"INSERT INTO i18n_dict (item_id, chs, cht, de, en, es, fr, id, jp, kr, pt, ru, th, vi) VALUES" \
                    r" (%s, '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')" % (
-                       this_item_id, chs_name, cht_name,
-                       de_name, en_name, es_name, fr_name, id_name,
-                       jp_name, kr_name, pt_name, ru_name,
-                       th_name, vi_name)
+                       this_item_id, name_list[0], name_list[1],
+                       name_list[2], name_list[3], name_list[4], name_list[5], name_list[6],
+                       name_list[7], name_list[8], name_list[9], name_list[10],
+                       name_list[11], name_list[12])
             db.execute(sql1)
 
             for key_name in lang_dict.keys():
