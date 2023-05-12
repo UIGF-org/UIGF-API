@@ -41,3 +41,8 @@ DB_PORT = int(os.environ['DB_PORT'])
 DB_USER = os.environ['DB_USER']
 DB_PASSWORD = os.environ['DB_PASSWORD']
 DB_NAME = os.environ['DB_NAME']
+
+game_name_id_map = {
+    "genshin": 1,
+    "starrail": 2
+}
