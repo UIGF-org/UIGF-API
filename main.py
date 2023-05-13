@@ -61,7 +61,7 @@ async def translate(request: Request):
                 return {"item_id": result_list}
         else:
             sql = r"SELECT item_id FROM i18n_dict WHERE %s='%s' AND game_id='%s' LIMIT 1" \
-                  % (lang+"_text", word.replace("'", "\\'"), game_id)
+                  % (lang + "_text", word.replace("'", "\\'"), game_id)
             result = db.fetch_one(sql)
             if result is None:
                 raise HTTPException(status_code=404, detail="Hash ID not found")
@@ -73,7 +73,7 @@ async def translate(request: Request):
             item_id_list = json.loads(item_id)
             item_id = item_id.replace("[", "").replace("]", "")
             sql = r"SELECT item_id, %s FROM i18n_dict WHERE item_id IN (%s) AND game_id='%s'" \
-                  % (lang+"_text", item_id.replace("'", "\\'"), game_id)
+                  % (lang + "_text", item_id.replace("'", "\\'"), game_id)
             result = db.fetch_all(sql)
             this_request_dict = {item[0]: item[1] for item in result}
             return_list = [this_request_dict[item_id] if item_id in this_request_dict.keys()
@@ -117,7 +117,7 @@ def make_language_dict_json(lang: str, game_name: str) -> bool:
     if game_id is None:
         return False
 
-    sql = r"SELECT item_id, %s FROM i18n_dict WHERE game_id='%s'" % (lang.lower()+"_text", game_id)
+    sql = r"SELECT item_id, %s FROM i18n_dict WHERE game_id='%s'" % (lang.lower() + "_text", game_id)
     result = db.fetch_all(sql)
     if result is None:
         raise HTTPException(status_code=404, detail="Hash ID not found")
@@ -193,21 +193,21 @@ def force_refresh_local_data(game_name: str) -> bool:
     else:
         print("Failed to refresh data: bad game name")
         return False
-    AvatarExcelConfigData = json.loads(requests.get(target_host + avatar_config_file).text.encode(encoding="utf-8"))
-    WeaponExcelConfigData = json.loads(requests.get(target_host + weapon_config_file).text.encode(encoding="utf-8"))
-    chs_dict = json.loads(requests.get(target_host + chs_file).text.encode(encoding="utf-8"))
-    cht_dict = json.loads(requests.get(target_host + cht_file).text.encode(encoding="utf-8"))
-    de_dict = json.loads(requests.get(target_host + de_file).text.encode(encoding="utf-8"))
-    en_dict = json.loads(requests.get(target_host + en_file).text.encode(encoding="utf-8"))
-    es_dict = json.loads(requests.get(target_host + es_file).text.encode(encoding="utf-8"))
-    fr_dict = json.loads(requests.get(target_host + fr_file).text.encode(encoding="utf-8"))
-    id_dict = json.loads(requests.get(target_host + id_file).text.encode(encoding="utf-8"))
-    jp_dict = json.loads(requests.get(target_host + jp_file).text.encode(encoding="utf-8"))
-    kr_dict = json.loads(requests.get(target_host + kr_file).text.encode(encoding="utf-8"))
-    pt_dict = json.loads(requests.get(target_host + pt_file).text.encode(encoding="utf-8"))
-    ru_dict = json.loads(requests.get(target_host + ru_file).text.encode(encoding="utf-8"))
-    th_dict = json.loads(requests.get(target_host + th_file).text.encode(encoding="utf-8"))
-    vi_dict = json.loads(requests.get(target_host + vi_file).text.encode(encoding="utf-8"))
+    AvatarExcelConfigData = json.loads(requests.get(target_host + avatar_config_file).text)
+    WeaponExcelConfigData = json.loads(requests.get(target_host + weapon_config_file).text)
+    chs_dict = json.loads(requests.get(target_host + chs_file).text)
+    cht_dict = json.loads(requests.get(target_host + cht_file).text)
+    de_dict = json.loads(requests.get(target_host + de_file).text)
+    en_dict = json.loads(requests.get(target_host + en_file).text)
+    es_dict = json.loads(requests.get(target_host + es_file).text)
+    fr_dict = json.loads(requests.get(target_host + fr_file).text)
+    id_dict = json.loads(requests.get(target_host + id_file).text)
+    jp_dict = json.loads(requests.get(target_host + jp_file).text)
+    kr_dict = json.loads(requests.get(target_host + kr_file).text)
+    pt_dict = json.loads(requests.get(target_host + pt_file).text)
+    ru_dict = json.loads(requests.get(target_host + ru_file).text)
+    th_dict = json.loads(requests.get(target_host + th_file).text)
+    vi_dict = json.loads(requests.get(target_host + vi_file).text)
     dict_list = [chs_dict, cht_dict, de_dict, en_dict, es_dict, fr_dict, id_dict,
                  jp_dict, kr_dict, pt_dict, ru_dict, th_dict, vi_dict]
     item_list = [AvatarExcelConfigData, WeaponExcelConfigData]
@@ -234,11 +234,13 @@ def force_refresh_local_data(game_name: str) -> bool:
                 this_item_id = int(item["id"])
             except TypeError:
                 if len(str(item)) == 4:
-                    this_name_hash_id = this_list[str(item)]["AvatarName"]["Hash"]
+                    this_name_hash_id = str(this_list[str(item)]["AvatarName"]["Hash"])
                     this_item_id = int(str(item))
+                    # print("item_id: name_id --> " + str(this_item_id) + " " +str(this_name_hash_id))
                 elif len(str(item)) == 5:
-                    this_name_hash_id = this_list[str(item)]["EquipmentName"]["Hash"]
+                    this_name_hash_id = str(this_list[str(item)]["EquipmentName"]["Hash"])
                     this_item_id = int(str(item))
+                    # print("item_id: name_id --> " + str(this_item_id) + " " + str(this_name_hash_id))
                 else:
                     print("Unknown ID item")
                     print(this_list)
@@ -269,11 +271,13 @@ def force_refresh_local_data(game_name: str) -> bool:
                        name_list[11], name_list[12])
             db.execute(sql1)
 
-            for key_name in lang_dict.keys():
-                if lang_dict[key_name] != "":
+            for k, v in lang_dict.items():
+                if v != "":
                     sql2 = r"INSERT INTO generic_dict (game_id, item_id, text, lang) VALUES (%s, %s, '%s', '%s')" % (
-                        game_id, this_item_id, lang_dict[key_name], key_name)
+                        game_id, this_item_id, v, k)
                     db.execute(sql2)
+
+    print("Successfully made data in database; continue make file")
 
     # Make dict files for each language
     for language in ACCEPTED_LANGUAGES:
