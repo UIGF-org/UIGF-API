@@ -2,13 +2,13 @@ from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
 from fastapi.responses import RedirectResponse, FileResponse
 from MysqlConn import MysqlConn
 import json
+import hashlib
 import requests
 from api_config import *
 import os
+import uvicorn
 
-for game_name in game_name_id_map.keys():
-    if not os.path.exists("./dict/{}".format(game_name)):
-        os.makedirs("./dict/{}".format(game_name))
+md5_dict_cache = {}
 app = FastAPI(docs_url=DOCS_URL, redoc_url=None)
 db = MysqlConn(DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME)
 
@@ -80,7 +80,7 @@ async def translate(request: Request):
                            else "" for item_id in item_id_list]
             return {"item_name": return_list}
         else:
-            sql = r"SELECT %s FROM i18n_dict WHERE item_id='%s' AND game_id='%s' LIMIT 1"\
+            sql = r"SELECT %s FROM i18n_dict WHERE item_id='%s' AND game_id='%s' LIMIT 1" \
                   % (lang + "_text", item_id, game_id)
             result = db.fetch_one(sql)
             if result is None:
@@ -136,14 +136,14 @@ def make_language_dict_json(lang: str, this_game_name: str) -> bool:
 @app.get("/{this_game_name}/dict/{lang}.json", tags=["dictionary"])
 async def download_language_dict_json(lang: str, this_game_name: str):
     lang = lang.lower()
-    if lang not in ACCEPTED_LANGUAGES and lang != "all":
+    if lang not in ACCEPTED_LANGUAGES and lang != "all" and lang != "md5":
         raise HTTPException(status_code=403, detail="Language not supported")
     if len(lang) == 5:
         lang = LANGUAGE_PAIRS[lang]
 
     if os.path.exists("dict/{}/{}.json".format(this_game_name, lang)):
-        return FileResponse(path="dict/{}.json".format(lang), filename=LANGUAGE_PAIRS[lang] + ".json",
-                            media_type="application/json")
+        return FileResponse(path="dict/{}/{}.json".format(this_game_name, lang),
+                            filename=LANGUAGE_PAIRS[lang] + ".json", media_type="application/json")
     else:
         make_dict_result = make_language_dict_json(lang, this_game_name)
         if make_dict_result:
@@ -154,6 +154,7 @@ async def download_language_dict_json(lang: str, this_game_name: str):
 
 
 def force_refresh_local_data(this_game_name: str) -> bool:
+    print("Start refreshing data for {}".format(this_game_name))
     if this_game_name == "genshin":
         target_host = "https://genshin-data.uigf.org/d/latest/"
         avatar_config_file = "ExcelBinOutput/AvatarExcelConfigData.json"
@@ -298,6 +299,7 @@ def force_refresh_local_data(this_game_name: str) -> bool:
     open("dict/%s/all.json" % this_game_name, "w", encoding="utf-8").write(
         json.dumps(all_language_dict, ensure_ascii=False, indent=4))
     print("Successfully generated dict/%s/all.json" % this_game_name)
+    make_checksum(this_game_name)
     return True
 
 
@@ -308,3 +310,51 @@ async def refresh(token: str, this_game_name: str, background_tasks: BackgroundT
     print("Receive request of refresh data for {}".format(this_game_name))
     background_tasks.add_task(force_refresh_local_data, this_game_name=this_game_name)
     return {"status": "Add background task successfully"}
+
+
+def make_checksum(this_game_name: str):
+    if this_game_name in game_name_id_map.keys():
+        work_list = [this_game_name]
+    elif this_game_name == "all":
+        work_list = game_name_id_map.keys()
+    else:
+        return False
+
+    for g in work_list:
+        if len(os.listdir("./dict/{}".format(g))) == 0:
+            print("Find empty dict folder during checksum. Force make data.")
+            force_refresh_local_data(g)
+
+        file_list = [f for f in os.listdir("./dict/{}".format(g)) if f.endswith(".json") and "md5" not in f]
+        print(file_list)
+        checksum_dict = {}
+        for json_file in file_list:
+            with open("./dict/{}/{}".format(g, json_file), "rb") as f:
+                b = f.read()
+                md5_hash = hashlib.md5(b).hexdigest()
+            checksum_dict[json_file.replace(".json", "")] = md5_hash
+            print("Successfully generate MD5 of {} language file for {}".format(json_file, g))
+        md5_dict_cache[g] = checksum_dict
+        with open("./dict/{}/md5.json".format(g), "w+") as write_file:
+            json.dump(checksum_dict, write_file, indent=2)
+        print("Finished the checksum task for {}".format(g))
+    print("MD5 file generated")
+    return True
+
+
+@app.get("/md5/{this_game_name}", tags=["refresh"])
+async def get_checksum(this_game_name: str, background_tasks: BackgroundTasks):
+    if this_game_name not in game_name_id_map.keys():
+        raise HTTPException(status_code=403, detail="Game name not accepted")
+    try:
+        return md5_dict_cache[this_game_name]
+    except KeyError:
+        background_tasks.add_task(make_checksum, this_game_name=this_game_name)
+        return {"status": "No checksum file at this time, come back later."}
+
+
+if __name__ == "__main__":
+    for game_name in game_name_id_map.keys():
+        if not os.path.exists("./dict/{}".format(game_name)):
+            os.makedirs("./dict/{}".format(game_name))
+    uvicorn.run(app, host="127.0.0.1", port=8000)

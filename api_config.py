@@ -30,7 +30,8 @@ LANGUAGE_PAIRS = {
     "ru-ru": "ru",
     "th-th": "th",
     "vi-vn": "vi",
-    "all": "all"
+    "all": "all",
+    "md5": "md5"
 }
 # App Settings
 TOKEN = os.environ['TOKEN']
