@@ -1,5 +1,6 @@
 import pymysql
 
+
 class MysqlConn:
     def __init__(self, host, port, user, password, database):
         self.conn = None

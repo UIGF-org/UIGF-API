@@ -18,9 +18,9 @@ async def root():
     return "https://uigf.org"
 
 
-def get_game_id_by_name(game_name: str) -> int | None:
+def get_game_id_by_name(this_game_name: str) -> int | None:
     try:
-        return game_name_id_map[game_name]
+        return game_name_id_map[this_game_name]
     except KeyError:
         return None
 
@@ -90,9 +90,9 @@ async def translate(request: Request):
         raise HTTPException(status_code=403, detail="Translate type not supported")
 
 
-@app.get("/identify/{game_name}/{word}", tags=["translate"])
-async def translate_generic(word: str, game_name: str):
-    game_id = get_game_id_by_name(game_name)
+@app.get("/identify/{this_game_name}/{word}", tags=["translate"])
+async def translate_generic(word: str, this_game_name: str):
+    game_id = get_game_id_by_name(this_game_name)
     if game_id is None:
         return False
 
@@ -106,14 +106,14 @@ async def translate_generic(word: str, game_name: str):
                 "lang": [LANGUAGE_PAIRS[result[i][1]] for i in range(len(result))]}
 
 
-def make_language_dict_json(lang: str, game_name: str) -> bool:
+def make_language_dict_json(lang: str, this_game_name: str) -> bool:
     lang = lang.lower()
     if lang not in ACCEPTED_LANGUAGES:
         return False
     if len(lang) == 5:
         lang = LANGUAGE_PAIRS[lang]
 
-    game_id = get_game_id_by_name(game_name)
+    game_id = get_game_id_by_name(this_game_name)
     if game_id is None:
         return False
 
@@ -127,24 +127,24 @@ def make_language_dict_json(lang: str, game_name: str) -> bool:
         except FileExistsError:
             pass
         lang_dict = {result[i][1]: result[i][0] for i in range(len(result)) if result[i][1] != ""}
-        with open("dict/{}/{}.json".format(game_name, lang), "w+", encoding='utf-8') as f:
+        with open("dict/{}/{}.json".format(this_game_name, lang), "w+", encoding='utf-8') as f:
             json.dump(lang_dict, f, indent=4, separators=(',', ': '), ensure_ascii=False)
     return True
 
 
-@app.get("/{game_name}/dict/{lang}.json", tags=["dictionary"])
-async def download_language_dict_json(lang: str, game_name: str):
+@app.get("/{this_game_name}/dict/{lang}.json", tags=["dictionary"])
+async def download_language_dict_json(lang: str, this_game_name: str):
     lang = lang.lower()
     if lang not in ACCEPTED_LANGUAGES and lang != "all":
         raise HTTPException(status_code=403, detail="Language not supported")
     if len(lang) == 5:
         lang = LANGUAGE_PAIRS[lang]
 
-    if os.path.exists("dict/{}/{}.json".format(game_name, lang)):
+    if os.path.exists("dict/{}/{}.json".format(this_game_name, lang)):
         return FileResponse(path="dict/{}.json".format(lang), filename=LANGUAGE_PAIRS[lang] + ".json",
                             media_type="application/json")
     else:
-        make_dict_result = make_language_dict_json(lang, game_name)
+        make_dict_result = make_language_dict_json(lang, this_game_name)
         if make_dict_result:
             return FileResponse(path="dict/{}.json".format(lang), filename=LANGUAGE_PAIRS[lang] + ".json",
                                 media_type="application/json")
@@ -152,9 +152,8 @@ async def download_language_dict_json(lang: str, game_name: str):
             raise HTTPException(status_code=400, detail="Failed to create dictionary, please try again later")
 
 
-def force_refresh_local_data(game_name: str) -> bool:
-    game_id = None
-    if game_name == "genshin":
+def force_refresh_local_data(this_game_name: str) -> bool:
+    if this_game_name == "genshin":
         target_host = "https://genshin-data.uigf.org/d/latest/"
         avatar_config_file = "ExcelBinOutput/AvatarExcelConfigData.json"
         weapon_config_file = "ExcelBinOutput/WeaponExcelConfigData.json"
@@ -172,7 +171,7 @@ def force_refresh_local_data(game_name: str) -> bool:
         th_file = "TextMap/TextMapTH.json"
         vi_file = "TextMap/TextMapVI.json"
         game_id = 1
-    elif game_name == "starrail":
+    elif this_game_name == "starrail":
         target_host = "https://raw.githubusercontent.com/Dimbreath/StarRailData/master/"
         avatar_config_file = "ExcelOutput/AvatarConfig.json"
         weapon_config_file = "ExcelOutput/EquipmentConfig.json"
@@ -193,8 +192,8 @@ def force_refresh_local_data(game_name: str) -> bool:
     else:
         print("Failed to refresh data: bad game name")
         return False
-    AvatarExcelConfigData = json.loads(requests.get(target_host + avatar_config_file).text)
-    WeaponExcelConfigData = json.loads(requests.get(target_host + weapon_config_file).text)
+    avatar_excel_config_data = json.loads(requests.get(target_host + avatar_config_file).text)
+    weapon_excel_config_data = json.loads(requests.get(target_host + weapon_config_file).text)
     chs_dict = json.loads(requests.get(target_host + chs_file).text)
     cht_dict = json.loads(requests.get(target_host + cht_file).text)
     de_dict = json.loads(requests.get(target_host + de_file).text)
@@ -210,7 +209,7 @@ def force_refresh_local_data(game_name: str) -> bool:
     vi_dict = json.loads(requests.get(target_host + vi_file).text)
     dict_list = [chs_dict, cht_dict, de_dict, en_dict, es_dict, fr_dict, id_dict,
                  jp_dict, kr_dict, pt_dict, ru_dict, th_dict, vi_dict]
-    item_list = [AvatarExcelConfigData, WeaponExcelConfigData]
+    item_list = [avatar_excel_config_data, weapon_excel_config_data]
 
     # Remove Old Data
     try:
@@ -219,31 +218,31 @@ def force_refresh_local_data(game_name: str) -> bool:
         db.execute(sql_del1)
         db.execute(sql_del2)
 
-        for file in os.listdir("dict/" + game_name):
-            os.remove("dict/" + game_name + "/" + file)
+        for file in os.listdir("dict/" + this_game_name):
+            os.remove("dict/" + this_game_name + "/" + file)
+    except FileNotFoundError:
+        print("dict/{} folder not exist".format(this_game_name))
     except OSError:
         raise HTTPException(status_code=500, detail="Database or IO error")
-    except FileNotFoundError:
-        print("dict/{} folder not exist".format(game_name))
 
     # Item list has weapon list and character list
     for this_list in item_list:
         for item in this_list:
             try:
+                # Genshin
                 this_name_hash_id = str(item["nameTextMapHash"])
                 this_item_id = int(item["id"])
             except TypeError:
+                # Star Rail
                 if len(str(item)) == 4:
                     this_name_hash_id = str(this_list[str(item)]["AvatarName"]["Hash"])
                     this_item_id = int(str(item))
-                    # print("item_id: name_id --> " + str(this_item_id) + " " +str(this_name_hash_id))
                 elif len(str(item)) == 5:
                     this_name_hash_id = str(this_list[str(item)]["EquipmentName"]["Hash"])
                     this_item_id = int(str(item))
-                    # print("item_id: name_id --> " + str(this_item_id) + " " + str(this_name_hash_id))
                 else:
-                    print("Unknown ID item")
                     print(this_list)
+                    raise KeyError("Unknown ID Item")
             name_list = [
                 lang_dict[this_name_hash_id].replace("'", "\\'") if this_name_hash_id in lang_dict.keys() else "" for
                 lang_dict in dict_list]
@@ -282,29 +281,29 @@ def force_refresh_local_data(game_name: str) -> bool:
     # Make dict files for each language
     for language in ACCEPTED_LANGUAGES:
         if len(language) != 5:
-            if not make_language_dict_json(language, game_name):
-                print("Failed to made dict file for %s for %s" % (language, game_name))
+            if not make_language_dict_json(language, this_game_name):
+                print("Failed to made dict file for %s for %s" % (language, this_game_name))
                 return False
-        print("Successfully made dict file for %s for %s" % (language, game_name))
+        print("Successfully made dict file for %s for %s" % (language, this_game_name))
 
     # Make a dict for all languages
     all_language_dict = {}
     for language in ACCEPTED_LANGUAGES:
         if len(language) != 5:
-            this_lang_dict = json.loads(open("./dict/{}/{}.json".format(game_name, language),
+            this_lang_dict = json.loads(open("./dict/{}/{}.json".format(this_game_name, language),
                                              "r", encoding="utf-8").read())
             all_language_dict[language] = this_lang_dict
-            print("Loaded " + language + " dict for " + game_name)
-    open("dict/%s/all.json" % game_name, "w", encoding="utf-8").write(
+            print("Loaded " + language + " dict for " + this_game_name)
+    open("dict/%s/all.json" % this_game_name, "w", encoding="utf-8").write(
         json.dumps(all_language_dict, ensure_ascii=False, indent=4))
-    print("Successfully generated dict/%s/all.json" % game_name)
+    print("Successfully generated dict/%s/all.json" % this_game_name)
     return True
 
 
-@app.get("/refresh/{game_name}/{token}", tags=["refresh"])
-async def refresh(token: str, game_name: str, background_tasks: BackgroundTasks):
+@app.get("/refresh/{this_game_name}/{token}", tags=["refresh"])
+async def refresh(token: str, this_game_name: str, background_tasks: BackgroundTasks):
     if token != TOKEN:
         raise HTTPException(status_code=403, detail="Token not accepted")
-    print("Receive request of refresh data for {}".format(game_name))
-    background_tasks.add_task(force_refresh_local_data, game_name=game_name)
+    print("Receive request of refresh data for {}".format(this_game_name))
+    background_tasks.add_task(force_refresh_local_data, this_game_name=this_game_name)
     return {"status": "Add background task successfully"}
