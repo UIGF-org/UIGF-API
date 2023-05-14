@@ -1,13 +1,14 @@
 #!/bin/sh
 # Build Stage
-FROM python:3.11 AS builder
+FROM python:3.11-alpine3.18 AS builder
 WORKDIR /code
 ADD . /code
+RUN apk add --no-cache gcc g++ musl-dev rust cargo patchelf
 RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 RUN pyinstaller -F main.py
 
 # Runtime
-FROM ubuntu:22.04 AS runtime
+FROM alpine:3.18 AS runtime
 WORKDIR /app
 COPY --from=builder /code/dist/main .
 EXPOSE 8000
