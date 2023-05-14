@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Oct 01, 2022 at 01:18 PM
+-- Generation Time: May 14, 2023 at 09:45 AM
 -- Server version: 10.6.5-MariaDB-log
 -- PHP Version: 7.4.27
 
@@ -28,6 +28,7 @@ SET time_zone = "+00:00";
 --
 
 CREATE TABLE `generic_dict` (
+  `game_id` int(11) NOT NULL,
   `item_id` bigint(15) NOT NULL,
   `text` text NOT NULL,
   `lang` text NOT NULL
@@ -40,20 +41,21 @@ CREATE TABLE `generic_dict` (
 --
 
 CREATE TABLE `i18n_dict` (
+  `game_id` int(11) NOT NULL,
   `item_id` bigint(15) NOT NULL,
-  `chs` text NOT NULL,
-  `cht` text NOT NULL,
-  `de` text NOT NULL,
-  `en` text NOT NULL,
-  `es` text NOT NULL,
-  `fr` text NOT NULL,
-  `id` text NOT NULL,
-  `jp` text NOT NULL,
-  `kr` text NOT NULL,
-  `pt` text NOT NULL,
-  `ru` text NOT NULL,
-  `th` text NOT NULL,
-  `vi` text NOT NULL
+  `chs_text` text NOT NULL,
+  `cht_text` text NOT NULL,
+  `de_text` text NOT NULL,
+  `en_text` text NOT NULL,
+  `es_text` text NOT NULL,
+  `fr_text` text NOT NULL,
+  `id_text` text NOT NULL,
+  `jp_text` text NOT NULL,
+  `kr_text` text NOT NULL,
+  `pt_text` text NOT NULL,
+  `ru_text` text NOT NULL,
+  `th_text` text NOT NULL,
+  `vi_text` text NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
@@ -64,7 +66,7 @@ CREATE TABLE `i18n_dict` (
 -- Indexes for table `i18n_dict`
 --
 ALTER TABLE `i18n_dict`
-  ADD PRIMARY KEY (`item_id`);
+  ADD PRIMARY KEY (`game_id`,`item_id`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
