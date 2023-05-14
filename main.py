@@ -80,7 +80,8 @@ async def translate(request: Request):
                            else "" for item_id in item_id_list]
             return {"item_name": return_list}
         else:
-            sql = r"SELECT %s FROM i18n_dict WHERE item_id='%s' AND game_id='%s' LIMIT 1" % (lang, item_id, game_id)
+            sql = r"SELECT %s FROM i18n_dict WHERE item_id='%s' AND game_id='%s' LIMIT 1"\
+                  % (lang + "_text", item_id, game_id)
             result = db.fetch_one(sql)
             if result is None:
                 raise HTTPException(status_code=404, detail="Word at this ID not found")
@@ -117,7 +118,7 @@ def make_language_dict_json(lang: str, this_game_name: str) -> bool:
     if game_id is None:
         return False
 
-    sql = r"SELECT item_id, %s FROM i18n_dict WHERE game_id='%s'" % (lang.lower() + "_text", game_id)
+    sql = r"SELECT item_id, %s FROM i18n_dict WHERE game_id='%s'" % (lang + "_text", game_id)
     result = db.fetch_all(sql)
     if result is None:
         raise HTTPException(status_code=404, detail="Hash ID not found")
