@@ -48,7 +48,7 @@ async def translate(request: Request):
             word = word.strip('][')
             word = '"' + word.replace(',', '","') + '"'
             sql = r"SELECT %s, item_id FROM i18n_dict WHERE %s IN (%s) AND game_id='%s'" \
-                  % (lang, lang, word.replace("'", "\\'"), game_id)
+                  % (lang + "_text", lang + "_text", word.replace("'", "\\'"), game_id)
             # This SQL result will return all text and their ID in a dict, no duplicate keys
             result = db.fetch_all(sql)
             if result is None:
@@ -133,7 +133,7 @@ def make_language_dict_json(lang: str, this_game_name: str) -> bool:
     return True
 
 
-@app.get("/{this_game_name}/dict/{lang}.json", tags=["dictionary"])
+@app.get("/dict/{this_game_name}/{lang}.json", tags=["dictionary"])
 async def download_language_dict_json(lang: str, this_game_name: str):
     lang = lang.lower()
     if lang not in ACCEPTED_LANGUAGES and lang != "all" and lang != "md5":
@@ -303,7 +303,7 @@ def force_refresh_local_data(this_game_name: str) -> bool:
     return True
 
 
-@app.get("/refresh/{this_game_name}/{token}", tags=["refresh"])
+@app.get("/refresh/{this_game_name}/{token}", tags=["checksum"])
 async def refresh(token: str, this_game_name: str, background_tasks: BackgroundTasks):
     if token != TOKEN:
         raise HTTPException(status_code=403, detail="Token not accepted")
@@ -357,4 +357,4 @@ if __name__ == "__main__":
     for game_name in game_name_id_map.keys():
         if not os.path.exists("./dict/{}".format(game_name)):
             os.makedirs("./dict/{}".format(game_name))
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000)
