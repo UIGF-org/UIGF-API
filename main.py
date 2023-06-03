@@ -156,7 +156,7 @@ async def download_language_dict_json(lang: str, this_game_name: str):
 def force_refresh_local_data(this_game_name: str) -> bool:
     print("Start refreshing data for {}".format(this_game_name))
     if this_game_name == "genshin":
-        target_host = "https://genshin-data.uigf.org/d/latest/"
+        target_host = "https://gitlab.com/Dimbreath/AnimeGameData/-/raw/master/"
         avatar_config_file = "ExcelBinOutput/AvatarExcelConfigData.json"
         weapon_config_file = "ExcelBinOutput/WeaponExcelConfigData.json"
         chs_file = "TextMap/TextMapCHS.json"
@@ -303,7 +303,7 @@ def force_refresh_local_data(this_game_name: str) -> bool:
     return True
 
 
-@app.get("/refresh/{this_game_name}/{token}", tags=["checksum"])
+@app.get("/refresh/{this_game_name}/{token}", tags=["refresh"])
 async def refresh(token: str, this_game_name: str, background_tasks: BackgroundTasks):
     if token != TOKEN:
         raise HTTPException(status_code=403, detail="Token not accepted")
@@ -342,7 +342,7 @@ def make_checksum(this_game_name: str):
     return True
 
 
-@app.get("/md5/{this_game_name}", tags=["refresh"])
+@app.get("/md5/{this_game_name}", tags=["checksum"])
 async def get_checksum(this_game_name: str, background_tasks: BackgroundTasks):
     if this_game_name not in game_name_id_map.keys():
         raise HTTPException(status_code=403, detail="Game name not accepted")
