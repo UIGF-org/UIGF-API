@@ -156,7 +156,7 @@ async def download_language_dict_json(lang: str, this_game_name: str):
 def force_refresh_local_data(this_game_name: str) -> bool:
     print("Start refreshing data for {}".format(this_game_name))
     if this_game_name == "genshin":
-        target_host = "https://gitlab.com/Dimbreath/AnimeGameData/-/raw/master/"
+        target_host = "https://raw.githubusercontent.com/Masterain98/GenshinData/main/"
         avatar_config_file = "ExcelBinOutput/AvatarExcelConfigData.json"
         weapon_config_file = "ExcelBinOutput/WeaponExcelConfigData.json"
         chs_file = "TextMap/TextMapCHS.json"
