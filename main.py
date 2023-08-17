@@ -157,8 +157,8 @@ def force_refresh_local_data(this_game_name: str) -> bool:
     print("Start refreshing data for {}".format(this_game_name))
     if this_game_name == "genshin":
         target_host = "https://raw.githubusercontent.com/Masterain98/GenshinData/main/"
-        avatar_config_file = "ExcelBinOutput/AvatarExcelConfigData.json"
-        weapon_config_file = "ExcelBinOutput/WeaponExcelConfigData.json"
+        avatar_config_file = "AvatarExcelConfigData.json"
+        weapon_config_file = "WeaponExcelConfigData.json"
         chs_file = "TextMap/TextMapCHS.json"
         cht_file = "TextMap/TextMapCHT.json"
         de_file = "TextMap/TextMapDE.json"
