@@ -1,0 +1,7 @@
+FROM python:3.11
+WORKDIR /code
+ADD . /code
+RUN pip install -r /code/requirements.txt
+RUN pyinstaller -F main.py
+EXPOSE 8000
+ENTRYPOINT ["./main"]
