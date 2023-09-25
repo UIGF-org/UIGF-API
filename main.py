@@ -161,17 +161,6 @@ def force_refresh_local_data(this_game_name: str) -> bool:
         weapon_config_file = "WeaponExcelConfigData.json"
         chs_file = "TextMap/TextMapCHS.json"
         cht_file = "TextMap/TextMapCHT.json"
-        de_file = "TextMap/TextMapDE.json"
-        en_file = "TextMap/TextMapEN.json"
-        es_file = "TextMap/TextMapES.json"
-        fr_file = "TextMap/TextMapFR.json"
-        id_file = "TextMap/TextMapID.json"
-        jp_file = "TextMap/TextMapJP.json"
-        kr_file = "TextMap/TextMapKR.json"
-        pt_file = "TextMap/TextMapPT.json"
-        ru_file = "TextMap/TextMapRU.json"
-        th_file = "TextMap/TextMapTH.json"
-        vi_file = "TextMap/TextMapVI.json"
         game_id = 1
     elif this_game_name == "starrail":
         target_host = "https://raw.githubusercontent.com/Dimbreath/StarRailData/master/"
@@ -179,36 +168,29 @@ def force_refresh_local_data(this_game_name: str) -> bool:
         weapon_config_file = "ExcelOutput/EquipmentConfig.json"
         chs_file = "TextMap/TextMapCN.json"
         cht_file = "TextMap/TextMapCHT.json"
-        de_file = "TextMap/TextMapDE.json"
-        en_file = "TextMap/TextMapEN.json"
-        es_file = "TextMap/TextMapES.json"
-        fr_file = "TextMap/TextMapFR.json"
-        id_file = "TextMap/TextMapID.json"
-        jp_file = "TextMap/TextMapJP.json"
-        kr_file = "TextMap/TextMapKR.json"
-        pt_file = "TextMap/TextMapPT.json"
-        ru_file = "TextMap/TextMapRU.json"
-        th_file = "TextMap/TextMapTH.json"
-        vi_file = "TextMap/TextMapVI.json"
         game_id = 2
     else:
         print("Failed to refresh data: bad game name")
         return False
     avatar_excel_config_data = json.loads(requests.get(target_host + avatar_config_file).text)
     weapon_excel_config_data = json.loads(requests.get(target_host + weapon_config_file).text)
+    if game_id == 1:
+        # https://github.com/UIGF-org/UIGF-API/issues/6
+        # Fix Primordial Jade Cutter Error
+        weapon_excel_config_data = [weapon for weapon in weapon_excel_config_data if weapon["id"] != 11506]
     chs_dict = json.loads(requests.get(target_host + chs_file).text)
     cht_dict = json.loads(requests.get(target_host + cht_file).text)
-    de_dict = json.loads(requests.get(target_host + de_file).text)
-    en_dict = json.loads(requests.get(target_host + en_file).text)
-    es_dict = json.loads(requests.get(target_host + es_file).text)
-    fr_dict = json.loads(requests.get(target_host + fr_file).text)
-    id_dict = json.loads(requests.get(target_host + id_file).text)
-    jp_dict = json.loads(requests.get(target_host + jp_file).text)
-    kr_dict = json.loads(requests.get(target_host + kr_file).text)
-    pt_dict = json.loads(requests.get(target_host + pt_file).text)
-    ru_dict = json.loads(requests.get(target_host + ru_file).text)
-    th_dict = json.loads(requests.get(target_host + th_file).text)
-    vi_dict = json.loads(requests.get(target_host + vi_file).text)
+    de_dict = json.loads(requests.get(target_host + "TextMap/TextMapDE.json").text)
+    en_dict = json.loads(requests.get(target_host + "TextMap/TextMapEN.json").text)
+    es_dict = json.loads(requests.get(target_host + "TextMap/TextMapES.json").text)
+    fr_dict = json.loads(requests.get(target_host + "TextMap/TextMapFR.json").text)
+    id_dict = json.loads(requests.get(target_host + "TextMap/TextMapID.json").text)
+    jp_dict = json.loads(requests.get(target_host + "TextMap/TextMapJP.json").text)
+    kr_dict = json.loads(requests.get(target_host + "TextMap/TextMapKR.json").text)
+    pt_dict = json.loads(requests.get(target_host + "TextMap/TextMapPT.json").text)
+    ru_dict = json.loads(requests.get(target_host + "TextMap/TextMapRU.json").text)
+    th_dict = json.loads(requests.get(target_host + "TextMap/TextMapTH.json").text)
+    vi_dict = json.loads(requests.get(target_host + "TextMap/TextMapVI.json").text)
     dict_list = [chs_dict, cht_dict, de_dict, en_dict, es_dict, fr_dict, id_dict,
                  jp_dict, kr_dict, pt_dict, ru_dict, th_dict, vi_dict]
     item_list = [avatar_excel_config_data, weapon_excel_config_data]
@@ -232,7 +214,7 @@ def force_refresh_local_data(this_game_name: str) -> bool:
         for item in this_list:
             try:
                 # Genshin
-                this_name_hash_id = str(item["nameTextMapHash"])
+                this_name_hash_id = str(item["NameTextMapHash"])
                 this_item_id = int(item["id"])
             except TypeError:
                 # Star Rail
