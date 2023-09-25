@@ -159,15 +159,11 @@ def force_refresh_local_data(this_game_name: str) -> bool:
         target_host = "https://raw.githubusercontent.com/Masterain98/GenshinData/main/"
         avatar_config_file = "AvatarExcelConfigData.json"
         weapon_config_file = "WeaponExcelConfigData.json"
-        chs_file = "TextMap/TextMapCHS.json"
-        cht_file = "TextMap/TextMapCHT.json"
         game_id = 1
     elif this_game_name == "starrail":
         target_host = "https://raw.githubusercontent.com/Dimbreath/StarRailData/master/"
         avatar_config_file = "ExcelOutput/AvatarConfig.json"
         weapon_config_file = "ExcelOutput/EquipmentConfig.json"
-        chs_file = "TextMap/TextMapCN.json"
-        cht_file = "TextMap/TextMapCHT.json"
         game_id = 2
     else:
         print("Failed to refresh data: bad game name")
@@ -178,8 +174,8 @@ def force_refresh_local_data(this_game_name: str) -> bool:
         # https://github.com/UIGF-org/UIGF-API/issues/6
         # Fix Primordial Jade Cutter Error
         weapon_excel_config_data = [weapon for weapon in weapon_excel_config_data if weapon["id"] != 11506]
-    chs_dict = json.loads(requests.get(target_host + chs_file).text)
-    cht_dict = json.loads(requests.get(target_host + cht_file).text)
+    chs_dict = json.loads(requests.get(target_host + "TextMap/TextMapCHS.json").text)
+    cht_dict = json.loads(requests.get(target_host + "TextMap/TextMapCHT.json").text)
     de_dict = json.loads(requests.get(target_host + "TextMap/TextMapDE.json").text)
     en_dict = json.loads(requests.get(target_host + "TextMap/TextMapEN.json").text)
     es_dict = json.loads(requests.get(target_host + "TextMap/TextMapES.json").text)
