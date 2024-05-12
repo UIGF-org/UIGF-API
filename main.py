@@ -25,7 +25,7 @@ def get_game_id_by_name(this_game_name: str) -> int | None:
         return None
 
 
-@app.post("/translate/", tags=["translate"])
+@app.post("/translate", tags=["translate"])
 async def translate(request: Request):
     # Handle Parameters
     request = await request.json()
