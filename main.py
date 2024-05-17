@@ -7,10 +7,19 @@ import requests
 from api_config import *
 import os
 import uvicorn
+from fastapi.middleware.cors import CORSMiddleware
 
 md5_dict_cache = {}
 app = FastAPI(docs_url=DOCS_URL, redoc_url=None)
 db = MysqlConn(DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/", response_class=RedirectResponse, status_code=302)
@@ -335,4 +344,4 @@ if __name__ == "__main__":
     for game_name in game_name_id_map.keys():
         if not os.path.exists("./dict/{}".format(game_name)):
             os.makedirs("./dict/{}".format(game_name))
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8900, proxy_headers=True, forwarded_allow_ips="*")
