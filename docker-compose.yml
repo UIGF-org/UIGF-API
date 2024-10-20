@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  fastapi-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    image: snap-hutao-generic-api:latest
+    container_name: Snap-Hutao-Generic-API
+    ports:
+      - "3975:8080"
+    volumes:
+      - ./cache:/app/cache
+      - ./.env:/app/.env
+    restart: unless-stopped
+    depends_on:
+      - tunnel
+
+  tunnel:
+    container_name: Snap-Hutao-Generic-API-Tunnel
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=snap-hutao-generic-api-tunnel-token
