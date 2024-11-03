@@ -24,7 +24,7 @@ app.add_middleware(
 
 @app.get("/", response_class=RedirectResponse, status_code=302)
 async def root():
-    return "https://uigf.org"
+    return "https://api.uigf.org/api/v1/docs"
 
 
 def get_game_id_by_name(this_game_name: str) -> int | None:
