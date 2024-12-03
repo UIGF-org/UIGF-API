@@ -170,7 +170,7 @@ def force_refresh_local_data(this_game_name: str) -> bool:
         weapon_config_file = "WeaponExcelConfigData.json"
         game_id = 1
     elif this_game_name == "starrail":
-        target_host = "https://raw.githubusercontent.com/Dimbreath/StarRailData/master/"
+        target_host = "https://gitlab.com/jianghanxia1/StarRailData/-/raw/master/"
         avatar_config_file = "ExcelOutput/AvatarConfig.json"
         weapon_config_file = "ExcelOutput/EquipmentConfig.json"
         game_id = 2
