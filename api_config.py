@@ -37,13 +37,14 @@ LANGUAGE_PAIRS = {
 TOKEN = os.environ['TOKEN']
 DOCS_URL = os.environ['DOCS_URL']
 # MySQL Settings
-DB_HOST = os.environ['DB_HOST']
-DB_PORT = int(os.environ['DB_PORT'])
+DB_HOST = os.environ['host.docker.internal']
+DB_PORT = 3306
 DB_USER = os.environ['DB_USER']
 DB_PASSWORD = os.environ['DB_PASSWORD']
 DB_NAME = os.environ['DB_NAME']
 
 game_name_id_map = {
     "genshin": 1,
-    "starrail": 2
+    "starrail": 2,
+    "zzz": 3
 }
