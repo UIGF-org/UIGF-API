@@ -24,7 +24,7 @@ app.add_middleware(
 
 @app.get("/", response_class=RedirectResponse, status_code=302)
 async def root():
-    return "https://api.uigf.org/api/v1/docs"
+    return "api/v1/docs"
 
 
 def get_game_id_by_name(this_game_name: str) -> int | None:
@@ -213,8 +213,8 @@ def force_refresh_local_data(this_game_name: str) -> bool:
         es_dict = json.loads(requests.get(target_host + "TextMap/TextMap_ESTemplateTb.json").text)
         fr_dict = json.loads(requests.get(target_host + "TextMap/TextMap_FRTemplateTb.json").text)
         id_dict = json.loads(requests.get(target_host + "TextMap/TextMap_IDTemplateTb.json").text)
-        jp_dict = json.loads(requests.get(target_host + "TextMap/TextMap_JPTemplateTb.json").text)
-        kr_dict = json.loads(requests.get(target_host + "TextMap/TextMap_KRTemplateTb.json").text)
+        jp_dict = json.loads(requests.get(target_host + "TextMap/TextMap_JATemplateTb.json").text)
+        kr_dict = json.loads(requests.get(target_host + "TextMap/TextMap_KOTemplateTb.json").text)
         pt_dict = json.loads(requests.get(target_host + "TextMap/TextMap_PTTemplateTb.json").text)
         ru_dict = json.loads(requests.get(target_host + "TextMap/TextMap_RUTemplateTb.json").text)
         th_dict = json.loads(requests.get(target_host + "TextMap/TextMap_THTemplateTb.json").text)
