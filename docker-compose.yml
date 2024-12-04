@@ -19,6 +19,13 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
+  redis:
+    container_name: ${CONTAINER_NAME}-Redis
+    image: redis:latest
+    volumes:
+      - /data/docker-service/redis_cache/${IMAGE_NAME}:/data
+    restart: unless-stopped
+
   tunnel:
     container_name: ${CONTAINER_NAME}-Tunnel
     image: cloudflare/cloudflared:latest
