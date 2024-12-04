@@ -6,21 +6,30 @@ services:
       context: .
       dockerfile: Dockerfile
       target: runtime
-    image: snap-hutao-generic-api:latest
-    container_name: Snap-Hutao-Generic-API
+    image: ${IMAGE_NAME}:${IMAGE_TAG}
+    container_name: ${CONTAINER_NAME}-Server
     ports:
-      - "3975:8080"
+      - "${EXTERNAL_PORT}:8080"
     volumes:
       - ./cache:/app/cache
       - ./.env:/app/.env
     restart: unless-stopped
     depends_on:
       - tunnel
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  redis:
+    container_name: ${CONTAINER_NAME}-Redis
+    image: redis:latest
+    volumes:
+      - /data/docker-service/redis_cache/${IMAGE_NAME}:/data
+    restart: unless-stopped
 
   tunnel:
-    container_name: Snap-Hutao-Generic-API-Tunnel
+    container_name: ${CONTAINER_NAME}-Tunnel
     image: cloudflare/cloudflared:latest
     restart: unless-stopped
     command: tunnel --no-autoupdate run
     environment:
-      - TUNNEL_TOKEN=snap-hutao-generic-api-tunnel-token
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
