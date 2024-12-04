@@ -1,13 +1,14 @@
+import logging
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
 from fastapi.responses import RedirectResponse, FileResponse
 from MysqlConn import MysqlConn
 import json
 import hashlib
-import requests
 from api_config import *
 import os
 import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
+from fetcher import fetch_genshin_impact_update, fetch_zzz_update, fetch_starrail_update
 
 md5_dict_cache = {}
 app = FastAPI(docs_url=DOCS_URL, redoc_url=None)
@@ -28,11 +29,7 @@ async def root():
 
 
 def get_game_id_by_name(this_game_name: str) -> int | None:
-    try:
-        return game_name_id_map[this_game_name]
-    except KeyError:
-        return None
-
+    return game_name_id_map.get(this_game_name, None)
 
 @app.post("/translate", tags=["translate"])
 async def translate(request: Request):
@@ -124,7 +121,7 @@ def make_language_dict_json(lang: str, this_game_name: str) -> bool:
         lang = LANGUAGE_PAIRS[lang]
 
     game_id = get_game_id_by_name(this_game_name)
-    if game_id is None:
+    if not game_id:
         return False
 
     sql = r"SELECT item_id, %s FROM i18n_dict WHERE game_id='%s'" % (lang + "_text", game_id)
@@ -132,10 +129,7 @@ def make_language_dict_json(lang: str, this_game_name: str) -> bool:
     if result is None:
         raise HTTPException(status_code=404, detail="Hash ID not found")
     else:
-        try:
-            os.mkdir("dict")
-        except FileExistsError:
-            pass
+        os.makedirs("dict", exist_ok=True)
         lang_dict = {result[i][1]: result[i][0] for i in range(len(result)) if result[i][1] != ""}
         with open("dict/{}/{}.json".format(this_game_name, lang), "w+", encoding='utf-8') as f:
             json.dump(lang_dict, f, indent=4, separators=(',', ': '), ensure_ascii=False)
@@ -165,63 +159,18 @@ async def download_language_dict_json(lang: str, this_game_name: str):
 def force_refresh_local_data(this_game_name: str) -> bool:
     print("Start refreshing data for {}".format(this_game_name))
     if this_game_name == "genshin":
-        target_host = "https://raw.githubusercontent.com/Masterain98/GenshinData/main/"
-        avatar_config_file = "AvatarExcelConfigData.json"
-        weapon_config_file = "WeaponExcelConfigData.json"
+        localization_dict = fetch_genshin_impact_update()
         game_id = 1
     elif this_game_name == "starrail":
-        target_host = "https://gitlab.com/jianghanxia1/StarRailData/-/raw/master/"
-        avatar_config_file = "ExcelOutput/AvatarConfig.json"
-        weapon_config_file = "ExcelOutput/EquipmentConfig.json"
+        localization_dict = fetch_starrail_update()
         game_id = 2
     elif this_game_name == "zzz":
-        target_host = "https://git.mero.moe/dimbreath/ZenlessData/raw/branch/master/"
-        avatar_config_file = "FileCfg/AvatarBaseTemplateTb.json" # agent
-        weapon_config_file = "FileCfg/ItemTemplateTb.json" # w-engine and bangboo
+        localization_dict = fetch_zzz_update()
         game_id = 3
     else:
-        print("Failed to refresh data: bad game name")
-        return False
-    avatar_excel_config_data = json.loads(requests.get(target_host + avatar_config_file).text.replace("NGPCCDGBLLK", "AvatarName").replace("EAAFCGPDFAA", "NameTextMapHash"))
-    weapon_excel_config_data = json.loads(requests.get(target_host + weapon_config_file).text.replace("NGPCCDGBLLK", "EquipmentName").replace("EAAFCGPDFAA", "NameTextMapHash"))
-    if game_id == 1:
-        # https://github.com/UIGF-org/UIGF-API/issues/6
-        # Fix Primordial Jade Cutter Error
-        weapon_excel_config_data = [weapon for weapon in weapon_excel_config_data if weapon["id"] != 11506]
-    if game_id != 3:
-        chs_dict = json.loads(requests.get(target_host + "TextMap/TextMapCHS.json").text)
-        cht_dict = json.loads(requests.get(target_host + "TextMap/TextMapCHT.json").text)
-        de_dict = json.loads(requests.get(target_host + "TextMap/TextMapDE.json").text)
-        en_dict = json.loads(requests.get(target_host + "TextMap/TextMapEN.json").text)
-        es_dict = json.loads(requests.get(target_host + "TextMap/TextMapES.json").text)
-        fr_dict = json.loads(requests.get(target_host + "TextMap/TextMapFR.json").text)
-        id_dict = json.loads(requests.get(target_host + "TextMap/TextMapID.json").text)
-        jp_dict = json.loads(requests.get(target_host + "TextMap/TextMapJP.json").text)
-        kr_dict = json.loads(requests.get(target_host + "TextMap/TextMapKR.json").text)
-        pt_dict = json.loads(requests.get(target_host + "TextMap/TextMapPT.json").text)
-        ru_dict = json.loads(requests.get(target_host + "TextMap/TextMapRU.json").text)
-        th_dict = json.loads(requests.get(target_host + "TextMap/TextMapTH.json").text)
-        vi_dict = json.loads(requests.get(target_host + "TextMap/TextMapVI.json").text)
-        dict_list = [chs_dict, cht_dict, de_dict, en_dict, es_dict, fr_dict, id_dict,
-                     jp_dict, kr_dict, pt_dict, ru_dict, th_dict, vi_dict]
-        item_list = [avatar_excel_config_data, weapon_excel_config_data]
-    else:
-        chs_dict = json.loads(requests.get(target_host + "TextMap/TextMapTemplateTb.json").text)
-        cht_dict = json.loads(requests.get(target_host + "TextMap/TextMap_CHTTemplateTb.json").text)
-        de_dict = json.loads(requests.get(target_host + "TextMap/TextMap_DETemplateTb.json").text)
-        en_dict = json.loads(requests.get(target_host + "TextMap/TextMap_ENTemplateTb.json").text)
-        es_dict = json.loads(requests.get(target_host + "TextMap/TextMap_ESTemplateTb.json").text)
-        fr_dict = json.loads(requests.get(target_host + "TextMap/TextMap_FRTemplateTb.json").text)
-        id_dict = json.loads(requests.get(target_host + "TextMap/TextMap_IDTemplateTb.json").text)
-        jp_dict = json.loads(requests.get(target_host + "TextMap/TextMap_JATemplateTb.json").text)
-        kr_dict = json.loads(requests.get(target_host + "TextMap/TextMap_KOTemplateTb.json").text)
-        pt_dict = json.loads(requests.get(target_host + "TextMap/TextMap_PTTemplateTb.json").text)
-        ru_dict = json.loads(requests.get(target_host + "TextMap/TextMap_RUTemplateTb.json").text)
-        th_dict = json.loads(requests.get(target_host + "TextMap/TextMap_THTemplateTb.json").text)
-        vi_dict = json.loads(requests.get(target_host + "TextMap/TextMap_VITemplateTb.json").text)
-        dict_list = [chs_dict, cht_dict, de_dict, en_dict, es_dict, fr_dict, id_dict,
-                     jp_dict, kr_dict, pt_dict, ru_dict, th_dict, vi_dict]
-        item_list = [avatar_excel_config_data, weapon_excel_config_data]
+        raise HTTPException(status_code=400, detail="Game not supported")
+    print(f"Successfully fetched {len(localization_dict)} items from {this_game_name}")
+
 
     # Remove Old Data
     try:
@@ -229,64 +178,28 @@ def force_refresh_local_data(this_game_name: str) -> bool:
         sql_del2 = r"DELETE FROM `generic_dict` WHERE game_id='%s'" % game_id
         db.execute(sql_del1)
         db.execute(sql_del2)
-
-        for file in os.listdir("dict/" + this_game_name):
-            os.remove("dict/" + this_game_name + "/" + file)
-    except FileNotFoundError:
-        print("dict/{} folder not exist".format(this_game_name))
     except OSError:
         raise HTTPException(status_code=500, detail="Database or IO error")
+    print("Successfully removed old data")
 
     # Item list has weapon list and character list
-    for this_list in item_list:
-        for item in this_list:
-            try:
-                # Genshin
-                this_name_hash_id = str(item["NameTextMapHash"])
-                this_item_id = int(item["id"])
-            except TypeError:
-                # Star Rail
-                if len(str(item)) == 4:
-                    this_name_hash_id = str(this_list[str(item)]["AvatarName"]["Hash"])
-                    this_item_id = int(str(item))
-                elif len(str(item)) == 5:
-                    this_name_hash_id = str(this_list[str(item)]["EquipmentName"]["Hash"])
-                    this_item_id = int(str(item))
-                else:
-                    print(this_list)
-                    raise KeyError("Unknown ID Item")
-            name_list = [
-                lang_dict[this_name_hash_id].replace("'", "\\'") if this_name_hash_id in lang_dict.keys() else "" for
-                lang_dict in dict_list]
-            lang_dict = {
-                "chs": name_list[0],
-                "cht": name_list[1],
-                "de": name_list[2],
-                "en": name_list[3],
-                "es": name_list[4],
-                "fr": name_list[5],
-                "id": name_list[6],
-                "jp": name_list[7],
-                "kr": name_list[8],
-                "pt": name_list[9],
-                "ru": name_list[10],
-                "th": name_list[11],
-                "vi": name_list[12]
-            }
-            sql1 = r"INSERT INTO i18n_dict (game_id, item_id, chs_text, cht_text, de_text, en_text, es_text, " \
-                   r"fr_text, id_text, jp_text, kr_text, pt_text, ru_text, th_text, vi_text) VALUES (%s, %s, '%s', " \
-                   r"'%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')" % (
-                       game_id, this_item_id, name_list[0], name_list[1],
-                       name_list[2], name_list[3], name_list[4], name_list[5], name_list[6],
-                       name_list[7], name_list[8], name_list[9], name_list[10],
-                       name_list[11], name_list[12])
-            db.execute(sql1)
+    for item_id,translation in localization_dict.items():
+        print(f"Processing item {item_id}")
+        sql1 = r"INSERT INTO i18n_dict (game_id, item_id, chs_text, cht_text, de_text, en_text, es_text, " \
+               r"fr_text, id_text, jp_text, kr_text, pt_text, ru_text, th_text, vi_text) VALUES (%s, %s, '%s', " \
+               r"'%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')" % (
+                   game_id, item_id, translation["chs"], translation["cht"],
+                   translation["de"], translation["en"], translation["es"], translation["fr"], translation["id"],
+                   translation["jp"], translation["kr"], translation["pt"], translation["ru"],
+                   translation["th"], translation["vi"])
+        db.execute(sql1)
 
-            for k, v in lang_dict.items():
-                if v != "":
-                    sql2 = r"INSERT INTO generic_dict (game_id, item_id, text, lang) VALUES (%s, %s, '%s', '%s')" % (
-                        game_id, this_item_id, v, k)
-                    db.execute(sql2)
+        for lang, text in translation.items():
+            if text != "":
+                sql2 = r"INSERT INTO generic_dict (game_id, item_id, text, lang) VALUES (%s, %s, '%s', '%s')" % (
+                    game_id, item_id, lang, text)
+                db.execute(sql2)
+        print(f"Successfully inserted item {item_id} into database")
 
     print("Successfully made data in database; continue make file")
 
