@@ -41,7 +41,9 @@ LANGUAGE_PAIRS = {
 TOKEN = os.environ['TOKEN']
 DOCS_URL = os.environ['DOCS_URL']
 # MySQL Settings
-DB_HOST = socket.gethostbyname('host.docker.internal')
+DB_HOST = os.getenv('DB_HOST', None)
+if DB_HOST is None:
+    DB_HOST = socket.gethostbyname('host.docker.internal')
 print(f"Using Docker gateway: {DB_HOST} as the MySQL host")
 DB_PORT = 3306
 DB_USER = os.environ['DB_USER']
