@@ -12,6 +12,7 @@ services:
       - "${EXTERNAL_PORT}:8080"
     volumes:
       - ./cache:/app/cache
+      - ./dict:/app/dict
       - ./.env:/app/.env
     restart: unless-stopped
     depends_on:
