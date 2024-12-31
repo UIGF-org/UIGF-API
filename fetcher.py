@@ -135,7 +135,7 @@ def fetch_zzz_update():
     item_id = ""
 
     avatar_config_data = json.loads(requests.get(target_host + avatar_config_file).text)
-    key_name = avatar_config_data.keys()
+    key_name = list(avatar_config_data.keys())
     if len(key_name) == 1:
         avatar_config_data = avatar_config_data[key_name[0]]
         for k, v in avatar_config_data[0].items():
@@ -149,7 +149,7 @@ def fetch_zzz_update():
         print(f"Successfully fetched name_hash_id: {name_hash_id} and item_id: {item_id} from zzz")
 
     weapon_config_data = json.loads(requests.get(target_host + weapon_config_file).text)
-    key_name = weapon_config_data.keys()
+    key_name = list(weapon_config_data.keys())
     if len(key_name) == 1:
         weapon_config_data = weapon_config_data[key_name[0]]
     print(f"Successfully fetched {len(avatar_config_data) + len(weapon_config_data)} items from zzz")
