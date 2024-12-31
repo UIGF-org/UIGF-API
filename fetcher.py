@@ -131,8 +131,27 @@ def fetch_zzz_update():
     weapon_config_file = "FileCfg/ItemTemplateTb.json"  # w-engine and bangboo
     resp = {}
 
-    avatar_config_data = json.loads(requests.get(target_host + avatar_config_file).text)["PEPPKLMFFBD"]
-    weapon_config_data = json.loads(requests.get(target_host + weapon_config_file).text)["PEPPKLMFFBD"]
+    name_hash_id = ""
+    item_id = ""
+
+    avatar_config_data = json.loads(requests.get(target_host + avatar_config_file).text)
+    key_name = avatar_config_data.keys()
+    if len(key_name) == 1:
+        avatar_config_data = avatar_config_data[key_name[0]]
+        for k, v in avatar_config_data[0].items():
+            if v == "Avatar_Female_Size02_Anbi":
+                name_hash_id = k
+            if v == 1011:
+                item_id = k
+    if name_hash_id == "" or item_id == "":
+        raise ValueError("Failed to fetch name_hash_id and item_id")
+    else:
+        print(f"Successfully fetched name_hash_id: {name_hash_id} and item_id: {item_id} from zzz")
+
+    weapon_config_data = json.loads(requests.get(target_host + weapon_config_file).text)
+    key_name = weapon_config_data.keys()
+    if len(key_name) == 1:
+        weapon_config_data = weapon_config_data[key_name[0]]
     print(f"Successfully fetched {len(avatar_config_data) + len(weapon_config_data)} items from zzz")
     chs_dict = json.loads(requests.get(target_host + "TextMap/TextMapTemplateTb.json").text)
     cht_dict = json.loads(requests.get(target_host + "TextMap/TextMap_CHTTemplateTb.json").text)
@@ -161,8 +180,8 @@ def fetch_zzz_update():
 
     for item in item_list:
         print(f"Processing item {item}")
-        this_name_hash_id = item["FJECNNMMDGH"]
-        this_item_id = item["GKNMDKNIMHP"]
+        this_name_hash_id = item[name_hash_id]
+        this_item_id = item[item_id]
         name_list = [
             lang_dict[this_name_hash_id].replace("'", "\\'") if this_name_hash_id in lang_dict.keys() else "" for
             lang_dict in dict_list

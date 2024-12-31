@@ -31,6 +31,7 @@ async def root():
 def get_game_id_by_name(this_game_name: str) -> int | None:
     return game_name_id_map.get(this_game_name, None)
 
+
 @app.post("/translate", tags=["translate"])
 async def translate(request: Request):
     # Handle Parameters
@@ -171,7 +172,6 @@ def force_refresh_local_data(this_game_name: str) -> bool:
         raise HTTPException(status_code=400, detail="Game not supported")
     print(f"Successfully fetched {len(localization_dict)} items from {this_game_name}")
 
-
     # Remove Old Data
     try:
         sql_del1 = r"DELETE FROM `i18n_dict` WHERE game_id='%s'" % game_id
@@ -183,7 +183,7 @@ def force_refresh_local_data(this_game_name: str) -> bool:
     print("Successfully removed old data")
 
     # Item list has weapon list and character list
-    for item_id,translation in localization_dict.items():
+    for item_id, translation in localization_dict.items():
         print(f"Processing item {item_id}")
         sql1 = r"INSERT INTO i18n_dict (game_id, item_id, chs_text, cht_text, de_text, en_text, es_text, " \
                r"fr_text, id_text, jp_text, kr_text, pt_text, ru_text, th_text, vi_text) VALUES (%s, %s, '%s', " \
