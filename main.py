@@ -12,7 +12,7 @@ from sqlalchemy import or_
 from typing import Optional, Dict
 
 from fetcher import fetch_genshin_impact_update, fetch_zzz_update, fetch_starrail_update
-from api_config import game_name_id_map, DOCS_URL, ACCEPTED_LANGUAGES, LANGUAGE_PAIRS, TOKEN
+from api_config import game_name_id_map, DOCS_URL, ACCEPTED_LANGUAGES, LANGUAGE_PAIRS, TOKEN, API_VERSION
 from base_logger import logger
 from db.mysql_db import SessionLocal
 from db.schemas import TranslateRequest, TranslateResponse
@@ -53,7 +53,15 @@ async def lifespan(fastapi_app: FastAPI):
         await fastapi_app.shutdown()
 
 
-app = FastAPI(docs_url=DOCS_URL, redoc_url=None, lifespan=lifespan)
+app = FastAPI(
+    title="UIGF API",
+    summary="Supporting localization API for UIGF-Org",
+    description="This API provides localization support for various games, for more information, please refer to the [UIGF-Org](https://github.com/UIGF-org)",
+    version=API_VERSION,
+    docs_url=DOCS_URL,
+    redoc_url=None,
+    lifespan=lifespan
+)
 
 app.add_middleware(
     CORSMiddleware,
