@@ -1,4 +1,4 @@
-import requests
+import httpx
 import json
 import os
 from base_logger import logger
@@ -10,21 +10,21 @@ def fetch_genshin_impact_update():
     weapon_config_file = "WeaponExcelConfigData.json"
     resp = {}
 
-    avatar_excel_config_data = json.loads(requests.get(target_host + avatar_config_file).text)
-    weapon_excel_config_data = json.loads(requests.get(target_host + weapon_config_file).text)
-    chs_dict = json.loads(requests.get(target_host + "TextMap/TextMapCHS.json").text)
-    cht_dict = json.loads(requests.get(target_host + "TextMap/TextMapCHT.json").text)
-    de_dict = json.loads(requests.get(target_host + "TextMap/TextMapDE.json").text)
-    en_dict = json.loads(requests.get(target_host + "TextMap/TextMapEN.json").text)
-    es_dict = json.loads(requests.get(target_host + "TextMap/TextMapES.json").text)
-    fr_dict = json.loads(requests.get(target_host + "TextMap/TextMapFR.json").text)
-    id_dict = json.loads(requests.get(target_host + "TextMap/TextMapID.json").text)
-    jp_dict = json.loads(requests.get(target_host + "TextMap/TextMapJP.json").text)
-    kr_dict = json.loads(requests.get(target_host + "TextMap/TextMapKR.json").text)
-    pt_dict = json.loads(requests.get(target_host + "TextMap/TextMapPT.json").text)
-    ru_dict = json.loads(requests.get(target_host + "TextMap/TextMapRU.json").text)
-    th_dict = json.loads(requests.get(target_host + "TextMap/TextMapTH.json").text)
-    vi_dict = json.loads(requests.get(target_host + "TextMap/TextMapVI.json").text)
+    avatar_excel_config_data = json.loads(httpx.get(target_host + avatar_config_file).text)
+    weapon_excel_config_data = json.loads(httpx.get(target_host + weapon_config_file).text)
+    chs_dict = json.loads(httpx.get(target_host + "TextMap/TextMapCHS.json").text)
+    cht_dict = json.loads(httpx.get(target_host + "TextMap/TextMapCHT.json").text)
+    de_dict = json.loads(httpx.get(target_host + "TextMap/TextMapDE.json").text)
+    en_dict = json.loads(httpx.get(target_host + "TextMap/TextMapEN.json").text)
+    es_dict = json.loads(httpx.get(target_host + "TextMap/TextMapES.json").text)
+    fr_dict = json.loads(httpx.get(target_host + "TextMap/TextMapFR.json").text)
+    id_dict = json.loads(httpx.get(target_host + "TextMap/TextMapID.json").text)
+    jp_dict = json.loads(httpx.get(target_host + "TextMap/TextMapJP.json").text)
+    kr_dict = json.loads(httpx.get(target_host + "TextMap/TextMapKR.json").text)
+    pt_dict = json.loads(httpx.get(target_host + "TextMap/TextMapPT.json").text)
+    ru_dict = json.loads(httpx.get(target_host + "TextMap/TextMapRU.json").text)
+    th_dict = json.loads(httpx.get(target_host + "TextMap/TextMapTH.json").text)
+    vi_dict = json.loads(httpx.get(target_host + "TextMap/TextMapVI.json").text)
     dict_list = [chs_dict, cht_dict, de_dict, en_dict, es_dict, fr_dict, id_dict,
                  jp_dict, kr_dict, pt_dict, ru_dict, th_dict, vi_dict]
     item_list = avatar_excel_config_data + weapon_excel_config_data
@@ -68,21 +68,21 @@ def fetch_starrail_update():
     weapon_config_file = "ExcelOutput/EquipmentConfig.json"
     resp = {}
 
-    avatar_config_data = json.loads(requests.get(target_host + avatar_config_file).text)
-    weapon_config_data = json.loads(requests.get(target_host + weapon_config_file).text)
-    chs_dict = json.loads(requests.get(target_host + "TextMap/TextMapCHS.json").text)
-    cht_dict = json.loads(requests.get(target_host + "TextMap/TextMapCHT.json").text)
-    de_dict = json.loads(requests.get(target_host + "TextMap/TextMapDE.json").text)
-    en_dict = json.loads(requests.get(target_host + "TextMap/TextMapEN.json").text)
-    es_dict = json.loads(requests.get(target_host + "TextMap/TextMapES.json").text)
-    fr_dict = json.loads(requests.get(target_host + "TextMap/TextMapFR.json").text)
-    id_dict = json.loads(requests.get(target_host + "TextMap/TextMapID.json").text)
-    jp_dict = json.loads(requests.get(target_host + "TextMap/TextMapJP.json").text)
-    kr_dict = json.loads(requests.get(target_host + "TextMap/TextMapKR.json").text)
-    pt_dict = json.loads(requests.get(target_host + "TextMap/TextMapPT.json").text)
-    ru_dict = json.loads(requests.get(target_host + "TextMap/TextMapRU.json").text)
-    th_dict = json.loads(requests.get(target_host + "TextMap/TextMapTH.json").text)
-    vi_dict = json.loads(requests.get(target_host + "TextMap/TextMapVI.json").text)
+    avatar_config_data = json.loads(httpx.get(target_host + avatar_config_file).text)
+    weapon_config_data = json.loads(httpx.get(target_host + weapon_config_file).text)
+    chs_dict = json.loads(httpx.get(target_host + "TextMap/TextMapCHS.json").text)
+    cht_dict = json.loads(httpx.get(target_host + "TextMap/TextMapCHT.json").text)
+    de_dict = json.loads(httpx.get(target_host + "TextMap/TextMapDE.json").text)
+    en_dict = json.loads(httpx.get(target_host + "TextMap/TextMapEN.json").text)
+    es_dict = json.loads(httpx.get(target_host + "TextMap/TextMapES.json").text)
+    fr_dict = json.loads(httpx.get(target_host + "TextMap/TextMapFR.json").text)
+    id_dict = json.loads(httpx.get(target_host + "TextMap/TextMapID.json").text)
+    jp_dict = json.loads(httpx.get(target_host + "TextMap/TextMapJP.json").text)
+    kr_dict = json.loads(httpx.get(target_host + "TextMap/TextMapKR.json").text)
+    pt_dict = json.loads(httpx.get(target_host + "TextMap/TextMapPT.json").text)
+    ru_dict = json.loads(httpx.get(target_host + "TextMap/TextMapRU.json").text)
+    th_dict = json.loads(httpx.get(target_host + "TextMap/TextMapTH.json").text)
+    vi_dict = json.loads(httpx.get(target_host + "TextMap/TextMapVI.json").text)
     dict_list = [chs_dict, cht_dict, de_dict, en_dict, es_dict, fr_dict, id_dict,
                  jp_dict, kr_dict, pt_dict, ru_dict, th_dict, vi_dict]
     item_list = avatar_config_data + weapon_config_data
@@ -135,7 +135,7 @@ def fetch_zzz_update():
     name_hash_id = ""
     item_id = ""
 
-    avatar_config_data = json.loads(requests.get(target_host + avatar_config_file).text)
+    avatar_config_data = json.loads(httpx.get(target_host + avatar_config_file).text)
     key_name = list(avatar_config_data.keys())
     if len(key_name) == 1:
         avatar_config_data = avatar_config_data[key_name[0]]
@@ -149,24 +149,24 @@ def fetch_zzz_update():
     else:
         logger.info(f"Successfully fetched name_hash_id: {name_hash_id} and item_id: {item_id} from zzz")
 
-    weapon_config_data = json.loads(requests.get(target_host + weapon_config_file).text)
+    weapon_config_data = json.loads(httpx.get(target_host + weapon_config_file).text)
     key_name = list(weapon_config_data.keys())
     if len(key_name) == 1:
         weapon_config_data = weapon_config_data[key_name[0]]
     logger.info(f"Successfully fetched {len(avatar_config_data) + len(weapon_config_data)} items from zzz")
-    chs_dict = json.loads(requests.get(target_host + "TextMap/TextMapTemplateTb.json").text)
-    cht_dict = json.loads(requests.get(target_host + "TextMap/TextMap_CHTTemplateTb.json").text)
-    de_dict = json.loads(requests.get(target_host + "TextMap/TextMap_DETemplateTb.json").text)
-    en_dict = json.loads(requests.get(target_host + "TextMap/TextMap_ENTemplateTb.json").text)
-    es_dict = json.loads(requests.get(target_host + "TextMap/TextMap_ESTemplateTb.json").text)
-    fr_dict = json.loads(requests.get(target_host + "TextMap/TextMap_FRTemplateTb.json").text)
-    id_dict = json.loads(requests.get(target_host + "TextMap/TextMap_IDTemplateTb.json").text)
-    jp_dict = json.loads(requests.get(target_host + "TextMap/TextMap_JATemplateTb.json").text)
-    kr_dict = json.loads(requests.get(target_host + "TextMap/TextMap_KOTemplateTb.json").text)
-    pt_dict = json.loads(requests.get(target_host + "TextMap/TextMap_PTTemplateTb.json").text)
-    ru_dict = json.loads(requests.get(target_host + "TextMap/TextMap_RUTemplateTb.json").text)
-    th_dict = json.loads(requests.get(target_host + "TextMap/TextMap_THTemplateTb.json").text)
-    vi_dict = json.loads(requests.get(target_host + "TextMap/TextMap_VITemplateTb.json").text)
+    chs_dict = json.loads(httpx.get(target_host + "TextMap/TextMapTemplateTb.json").text)
+    cht_dict = json.loads(httpx.get(target_host + "TextMap/TextMap_CHTTemplateTb.json").text)
+    de_dict = json.loads(httpx.get(target_host + "TextMap/TextMap_DETemplateTb.json").text)
+    en_dict = json.loads(httpx.get(target_host + "TextMap/TextMap_ENTemplateTb.json").text)
+    es_dict = json.loads(httpx.get(target_host + "TextMap/TextMap_ESTemplateTb.json").text)
+    fr_dict = json.loads(httpx.get(target_host + "TextMap/TextMap_FRTemplateTb.json").text)
+    id_dict = json.loads(httpx.get(target_host + "TextMap/TextMap_IDTemplateTb.json").text)
+    jp_dict = json.loads(httpx.get(target_host + "TextMap/TextMap_JATemplateTb.json").text)
+    kr_dict = json.loads(httpx.get(target_host + "TextMap/TextMap_KOTemplateTb.json").text)
+    pt_dict = json.loads(httpx.get(target_host + "TextMap/TextMap_PTTemplateTb.json").text)
+    ru_dict = json.loads(httpx.get(target_host + "TextMap/TextMap_RUTemplateTb.json").text)
+    th_dict = json.loads(httpx.get(target_host + "TextMap/TextMap_THTemplateTb.json").text)
+    vi_dict = json.loads(httpx.get(target_host + "TextMap/TextMap_VITemplateTb.json").text)
     dict_list = [chs_dict, cht_dict, de_dict, en_dict, es_dict, fr_dict, id_dict,
                  jp_dict, kr_dict, pt_dict, ru_dict, th_dict, vi_dict]
     item_list = avatar_config_data + weapon_config_data

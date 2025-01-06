@@ -4,7 +4,11 @@ FROM python:3.11-alpine3.18 AS builder
 WORKDIR /code
 ADD . /code
 RUN apk add --no-cache gcc g++ musl-dev rust cargo patchelf
-RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
+RUN pip install "fastapi[standard]"
+RUN pip install redis
+RUN pip install sqlalchemy
+RUN pip install pymysql
+RUN pip install pyinstaller
 RUN pyinstaller -F main.py
 
 # Runtime
