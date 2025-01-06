@@ -3,9 +3,9 @@ from sqlalchemy.exc import SQLAlchemyError
 import json
 import redis
 from db.models import I18nDict
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 from base_logger import logger
-from api_config import game_name_id_map, ACCEPTED_LANGUAGES, LANGUAGE_PAIRS
+from api_config import game_name_id_map
 
 
 def get_game_id_by_name(this_game_name: str) -> Optional[int]:

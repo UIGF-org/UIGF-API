@@ -1,5 +1,5 @@
 from .mysql_db import Base
-from sqlalchemy import Column, Integer, String, Date
+from sqlalchemy import Column, Integer, String
 
 # ------------------------------------------------------------------------
 # MODEL DECLARATIONS
@@ -31,4 +31,3 @@ class I18nDict(Base):
     ru_text = Column(String(255), default="")
     th_text = Column(String(255), default="")
     vi_text = Column(String(255), default="")
-

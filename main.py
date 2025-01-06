@@ -1,15 +1,16 @@
 import os
 import json
 import hashlib
-from sqlalchemy import or_
-from typing import Optional, Dict
 import redis
-from fastapi import FastAPI, HTTPException, BackgroundTasks, Request, Depends, Header
+import uvicorn
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Request, Header
 from fastapi.responses import RedirectResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
-from contextlib import asynccontextmanager
 from sqlalchemy.orm import Session
-import uvicorn
+from sqlalchemy import or_
+from typing import Optional, Dict
+
 from fetcher import fetch_genshin_impact_update, fetch_zzz_update, fetch_starrail_update
 from api_config import game_name_id_map, DOCS_URL, ACCEPTED_LANGUAGES, LANGUAGE_PAIRS, TOKEN
 from base_logger import logger
@@ -73,6 +74,18 @@ async def root():
 
 @app.post("/translate", response_model=TranslateResponse, tags=["translate"])
 async def translate(request_data: TranslateRequest, request: Request):
+    """
+    Translate an item name to an item ID, or vice versa.
+
+    - **type**: "normal" or "reverse"
+    - **lang**: Language code (e.g. "en", "zh-cn")
+    - **game**: Game name (e.g. "genshin", "starrail")
+    - **item_name**: The item name to translate
+    - **item_id**: The item ID to translate
+
+    If **`normal`**, text -> item_id
+    If **`reverse`**, item_id -> text
+    """
     db = request.app.state.mysql
     # Normalize language
     lang = request_data.lang.lower()
@@ -105,7 +118,7 @@ async def translate(request_data: TranslateRequest, request: Request):
             # It's a list of words
             word_list = json.loads(word)
             rows = (
-                db.query(column_attr, getattr(type(column_attr.property.parent.class_), 'item_id'))
+                db.query(column_attr, getattr(column_attr.property.parent.class_, 'item_id'))
                 .filter_by(game_id=game_id)
                 .filter(column_attr.in_(word_list))
                 .all()
@@ -120,14 +133,14 @@ async def translate(request_data: TranslateRequest, request: Request):
             return TranslateResponse(item_id=result_list)
         else:
             row = (
-                db.query(getattr(type(column_attr.property.parent.class_), 'item_id'))
+                db.query(getattr(column_attr.property.parent.class_, 'item_id'))
                 .filter_by(game_id=game_id)
                 .filter(column_attr == word)
                 .first()
             )
             if not row:
                 raise HTTPException(status_code=404, detail="Hash ID not found")
-            return TranslateResponse(item_id=row[0])
+            return TranslateResponse(item_id=row[0], item_name=word)
 
     # ------------------------------------------------------------------
     # Translate "reverse": from item_id -> text
@@ -145,9 +158,9 @@ async def translate(request_data: TranslateRequest, request: Request):
             # It's a list
             item_id_list = json.loads(item_id)
             rows = (
-                db.query(getattr(type(column_attr.property.parent.class_), 'item_id'), column_attr)
+                db.query(getattr(column_attr.property.parent.class_, 'item_id'), column_attr)
                 .filter_by(game_id=game_id)
-                .filter(getattr(type(column_attr.property.parent.class_), 'item_id').in_(item_id_list))
+                .filter(getattr(column_attr.property.parent.class_, 'item_id').in_(item_id_list))
                 .all()
             )
             id_to_text_map = {r[0]: r[1] for r in rows}
@@ -161,18 +174,16 @@ async def translate(request_data: TranslateRequest, request: Request):
             )
             if not row:
                 raise HTTPException(status_code=404, detail="Word at this ID not found")
-            return TranslateResponse(item_name=row[0])
+            return TranslateResponse(item_name=row[0], item_id=item_id)
 
     else:
         raise HTTPException(status_code=403, detail="Translate type not supported")
 
 
 def build_language_filter(word: str):
-    from sqlalchemy import or_
-    from db.crud import ACCEPTED_LANGUAGES, get_lang_column
     or_conditions = []
     for lang_code in ACCEPTED_LANGUAGES:
-        column_attr = get_lang_column(lang_code)
+        column_attr = crud.get_lang_column(lang_code)
         or_conditions.append(column_attr == word)
     return or_(*or_conditions)
 
@@ -346,6 +357,7 @@ def force_refresh_local_data(this_game_name: str, db: Session, redis_client: red
 
 @app.get("/md5/{this_game_name}", tags=["checksum"])
 async def get_checksum(this_game_name: str, background_tasks: BackgroundTasks):
+
     if this_game_name not in game_name_id_map:
         raise HTTPException(status_code=403, detail="Game name not accepted")
     try:
@@ -375,11 +387,7 @@ def make_checksum(this_game_name: str):
         ]
         # If none exist, force refresh
         if len(file_list) == 0:
-            force_refresh_local_data(g)
-            file_list = [
-                f for f in os.listdir(dict_path)
-                if f.endswith(".json") and "md5" not in f
-            ]
+            raise RuntimeError("No Json files found, forcing refresh.")
 
         checksum_dict = {}
         for json_file in file_list:
