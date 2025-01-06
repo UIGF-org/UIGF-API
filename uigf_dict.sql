@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.1.1
+-- version 5.2.1
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: May 14, 2023 at 09:45 AM
--- Server version: 10.6.5-MariaDB-log
--- PHP Version: 7.4.27
+-- Generation Time: Jan 06, 2025 at 03:34 PM
+-- Server version: 8.0.35
+-- PHP Version: 8.0.30
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -18,21 +18,8 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Database: `uigf_dict`
+-- Database: `uigf`
 --
-
--- --------------------------------------------------------
-
---
--- Table structure for table `generic_dict`
---
-
-CREATE TABLE `generic_dict` (
-  `game_id` int(11) NOT NULL,
-  `item_id` bigint(15) NOT NULL,
-  `text` text NOT NULL,
-  `lang` text NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
 
@@ -41,8 +28,8 @@ CREATE TABLE `generic_dict` (
 --
 
 CREATE TABLE `i18n_dict` (
-  `game_id` int(11) NOT NULL,
-  `item_id` bigint(15) NOT NULL,
+  `game_id` int NOT NULL,
+  `item_id` bigint NOT NULL,
   `chs_text` text NOT NULL,
   `cht_text` text NOT NULL,
   `de_text` text NOT NULL,
@@ -56,7 +43,7 @@ CREATE TABLE `i18n_dict` (
   `ru_text` text NOT NULL,
   `th_text` text NOT NULL,
   `vi_text` text NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Indexes for dumped tables

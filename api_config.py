@@ -40,6 +40,8 @@ LANGUAGE_PAIRS = {
 # App Settings
 TOKEN = os.environ['TOKEN']
 DOCS_URL = os.environ['DOCS_URL']
+API_VERSION = os.environ['IMAGE_TAG']
+
 # MySQL Settings
 DB_HOST = os.getenv('DB_HOST', None)
 if DB_HOST is None:

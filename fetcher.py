@@ -1,6 +1,7 @@
 import requests
 import json
 import os
+from base_logger import logger
 
 
 def fetch_genshin_impact_update():
@@ -146,13 +147,13 @@ def fetch_zzz_update():
     if name_hash_id == "" or item_id == "":
         raise ValueError("Failed to fetch name_hash_id and item_id")
     else:
-        print(f"Successfully fetched name_hash_id: {name_hash_id} and item_id: {item_id} from zzz")
+        logger.info(f"Successfully fetched name_hash_id: {name_hash_id} and item_id: {item_id} from zzz")
 
     weapon_config_data = json.loads(requests.get(target_host + weapon_config_file).text)
     key_name = list(weapon_config_data.keys())
     if len(key_name) == 1:
         weapon_config_data = weapon_config_data[key_name[0]]
-    print(f"Successfully fetched {len(avatar_config_data) + len(weapon_config_data)} items from zzz")
+    logger.info(f"Successfully fetched {len(avatar_config_data) + len(weapon_config_data)} items from zzz")
     chs_dict = json.loads(requests.get(target_host + "TextMap/TextMapTemplateTb.json").text)
     cht_dict = json.loads(requests.get(target_host + "TextMap/TextMap_CHTTemplateTb.json").text)
     de_dict = json.loads(requests.get(target_host + "TextMap/TextMap_DETemplateTb.json").text)
@@ -166,11 +167,10 @@ def fetch_zzz_update():
     ru_dict = json.loads(requests.get(target_host + "TextMap/TextMap_RUTemplateTb.json").text)
     th_dict = json.loads(requests.get(target_host + "TextMap/TextMap_THTemplateTb.json").text)
     vi_dict = json.loads(requests.get(target_host + "TextMap/TextMap_VITemplateTb.json").text)
-    print(f"Successfully fetched 13 language dictionaries from zzz")
     dict_list = [chs_dict, cht_dict, de_dict, en_dict, es_dict, fr_dict, id_dict,
                  jp_dict, kr_dict, pt_dict, ru_dict, th_dict, vi_dict]
     item_list = avatar_config_data + weapon_config_data
-    print(f"Successfully fetched {len(item_list)} items from zzz")
+    logger.info(f"Successfully fetched {len(item_list)} items from zzz")
 
     try:
         for file in os.listdir("dict/zzz"):
@@ -179,7 +179,6 @@ def fetch_zzz_update():
         pass
 
     for item in item_list:
-        print(f"Processing item {item}")
         this_name_hash_id = item[name_hash_id]
         this_item_id = item[item_id]
         name_list = [
@@ -202,5 +201,4 @@ def fetch_zzz_update():
             "vi": name_list[12]
         }
         resp[this_item_id] = lang_dict
-    print(f"Returning {len(resp)} items")
     return resp
