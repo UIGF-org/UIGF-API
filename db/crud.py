@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
-
+import json
+import redis
 from db.models import I18nDict
 from typing import Dict, List, Optional
 from base_logger import logger
@@ -44,7 +45,8 @@ def clear_game_data(db: Session, game_id: int):
         raise RuntimeError("Error clearing game data")
 
 
-def insert_localization_data(db: Session, game_id: int, localization_dict: Dict[str, Dict[str, str]]):
+def insert_localization_data(db: Session, redis_client: redis.Redis, game_id: int,
+                             localization_dict: Dict[str, Dict[str, str]]):
     """
     Insert data into i18n_dict
     localization_dict = { item_id: { 'en': 'some text', 'chs': '中文', ...}, ... }
@@ -81,3 +83,26 @@ def insert_localization_data(db: Session, game_id: int, localization_dict: Dict[
             db.rollback()
             raise RuntimeError("Error inserting localization data")
     logger.info(f"Inserted {len(i18n_entries)} rows into i18n_dict, task finished.")
+
+    pipe = redis_client.pipeline(transaction=False)
+    for entry in i18n_entries:
+        data_dict = {
+            "chs_text": entry.chs_text,
+            "cht_text": entry.cht_text,
+            "de_text": entry.de_text,
+            "en_text": entry.en_text,
+            "es_text": entry.es_text,
+            "fr_text": entry.fr_text,
+            "id_text": entry.id_text,
+            "jp_text": entry.jp_text,
+            "kr_text": entry.kr_text,
+            "pt_text": entry.pt_text,
+            "ru_text": entry.ru_text,
+            "th_text": entry.th_text,
+            "vi_text": entry.vi_text,
+        }
+        redis_key = f"uigf:game-{entry.game_id}:{entry.item_id}"
+        pipe.set(redis_key, json.dumps(data_dict, ensure_ascii=False))
+
+    pipe.execute()
+    logger.info("All inserted items have been cached in Redis.")

@@ -1,25 +1,15 @@
 import os
 import json
 import hashlib
-
-import sqlalchemy.orm.session
-
-from base_logger import logger
 from sqlalchemy import or_
-from typing import Optional, Dict, List, Any
-from redis import asyncio as aioredis
+from typing import Optional, Dict
+import redis
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Request, Depends, Header
 from fastapi.responses import RedirectResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from sqlalchemy import (
-    create_engine, Column, Integer, String, Text, exc
-)
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, Session
-
+from sqlalchemy.orm import Session
 import uvicorn
-
 from fetcher import fetch_genshin_impact_update, fetch_zzz_update, fetch_starrail_update
 from api_config import game_name_id_map, DOCS_URL, ACCEPTED_LANGUAGES, LANGUAGE_PAIRS, TOKEN
 from base_logger import logger
@@ -51,10 +41,9 @@ async def lifespan(fastapi_app: FastAPI):
     try:
         logger.info("Starting FastAPI app")
         redis_host = os.getenv("REDIS_HOST", "redis")
-        redis_pool = aioredis.ConnectionPool.from_url(f"redis://{redis_host}", db=0)
+        redis_pool = redis.ConnectionPool.from_url(f"redis://{redis_host}", db=0)
         fastapi_app.state.redis = redis_pool
         logger.info("Connected to Redis")
-        redis_client = aioredis.Redis.from_pool(redis_pool)
         app.state.mysql = SessionLocal()
         logger.info("Connected to MySQL")
         yield
@@ -130,7 +119,6 @@ async def translate(request_data: TranslateRequest, request: Request):
             result_list = [text_to_id_map.get(w, 0) for w in word_list]
             return TranslateResponse(item_id=result_list)
         else:
-            # Single word
             row = (
                 db.query(getattr(type(column_attr.property.parent.class_), 'item_id'))
                 .filter_by(game_id=game_id)
@@ -166,7 +154,6 @@ async def translate(request_data: TranslateRequest, request: Request):
             return_list = [id_to_text_map.get(iid, "") for iid in item_id_list]
             return TranslateResponse(item_name=return_list)
         else:
-            # Single
             row = (
                 db.query(column_attr)
                 .filter_by(game_id=game_id, item_id=item_id)
@@ -309,13 +296,14 @@ async def refresh(this_game_name: str, background_tasks: BackgroundTasks, reques
     if x_uigf_token != TOKEN:
         raise HTTPException(status_code=403, detail="Token not accepted")
     db = request.app.state.mysql
+    redis_client = redis.Redis.from_pool(request.app.state.redis)
 
-    logger.info("Received refresh request for %s", this_game_name)
-    background_tasks.add_task(force_refresh_local_data, this_game_name, db)
+    logger.info(f"Received refresh request for {this_game_name}")
+    background_tasks.add_task(force_refresh_local_data, this_game_name, db, redis_client)
     return {"status": "Background refresh task added"}
 
 
-def force_refresh_local_data(this_game_name: str, db: sqlalchemy.orm.session.Session):
+def force_refresh_local_data(this_game_name: str, db: Session, redis_client: redis.Redis):
     """ Runs as a background task: fetch -> wipe -> insert -> build JSON dict -> MD5. """
     try:
         if this_game_name == "genshin":
@@ -335,7 +323,7 @@ def force_refresh_local_data(this_game_name: str, db: sqlalchemy.orm.session.Ses
         # Clear old data
         crud.clear_game_data(db, game_id)
         # Insert new data
-        crud.insert_localization_data(db, game_id, localization_dict)
+        crud.insert_localization_data(db, redis_client, game_id, localization_dict)
 
         # Build dict files
         for language in ACCEPTED_LANGUAGES:
