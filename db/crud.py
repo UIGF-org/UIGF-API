@@ -1,10 +1,9 @@
-import json
-import logging
 from sqlalchemy.orm import Session
-from sqlalchemy import exc
+from sqlalchemy.exc import SQLAlchemyError
 
-from db.models import I18nDict, GenericDict
+from db.models import I18nDict
 from typing import Dict, List, Optional
+from base_logger import logger
 from api_config import game_name_id_map, ACCEPTED_LANGUAGES, LANGUAGE_PAIRS
 
 
@@ -35,21 +34,24 @@ def get_lang_column(lang: str):
 
 
 def clear_game_data(db: Session, game_id: int):
-    """ Delete old data from i18n_dict & generic_dict for a given game_id. """
-    db.query(I18nDict).filter(I18nDict.game_id == game_id).delete()
-    db.query(GenericDict).filter(GenericDict.game_id == game_id).delete()
-    db.commit()
+    """ Delete old data from i18n_dict for a given game_id. """
+    try:
+        db.query(I18nDict).filter(I18nDict.game_id == game_id).delete()
+        db.commit()
+    except SQLAlchemyError as e:
+        logger.error(f"Error clearing game data: {e}")
+        db.rollback()
+        raise RuntimeError("Error clearing game data")
 
 
-def insert_localization_data(
-        db: Session,
-        game_id: int,
-        localization_dict: Dict[str, Dict[str, str]]
-):
+def insert_localization_data(db: Session, game_id: int, localization_dict: Dict[str, Dict[str, str]]):
     """
-    Insert data into i18n_dict & generic_dict.
+    Insert data into i18n_dict
     localization_dict = { item_id: { 'en': 'some text', 'chs': '中文', ...}, ... }
     """
+    i18n_entries = []
+
+    # Gather all rows in memory
     for item_id, translation in localization_dict.items():
         i18n_entry = I18nDict(
             game_id=game_id,
@@ -68,17 +70,14 @@ def insert_localization_data(
             th_text=translation.get("th", ""),
             vi_text=translation.get("vi", "")
         )
-        db.add(i18n_entry)
+        i18n_entries.append(i18n_entry)
 
-        # Insert into GenericDict
-        for lang_code, text_value in translation.items():
-            if text_value:
-                gdict = GenericDict(
-                    game_id=game_id,
-                    item_id=item_id,
-                    text=text_value,  # Properly set "text"
-                    lang=lang_code  # And "lang"
-                )
-                db.add(gdict)
-
-    db.commit()
+    for entry in i18n_entries:
+        try:
+            db.add(entry)
+            db.commit()
+        except SQLAlchemyError as e:
+            logger.error(f"Error inserting localization data: {e}")
+            db.rollback()
+            raise RuntimeError("Error inserting localization data")
+    logger.info(f"Inserted {len(i18n_entries)} rows into i18n_dict, task finished.")

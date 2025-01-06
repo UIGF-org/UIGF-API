@@ -15,9 +15,8 @@ class I18nDict(Base):
     __tablename__ = "i18n_dict"
 
     # auto increment primary key if you want
-    id = Column(Integer, primary_key=True, index=True)
     game_id = Column(Integer, index=True, nullable=False)
-    item_id = Column(String(255), index=True, nullable=False)
+    item_id = Column(String(255), index=True, nullable=False, primary_key=True)
 
     chs_text = Column(String(255), default="")
     cht_text = Column(String(255), default="")
@@ -33,16 +32,3 @@ class I18nDict(Base):
     th_text = Column(String(255), default="")
     vi_text = Column(String(255), default="")
 
-
-class GenericDict(Base):
-    """
-    Reflects the generic_dict table with columns:
-    game_id, item_id, text, lang
-    """
-    __tablename__ = "generic_dict"
-
-    id = Column(Integer, primary_key=True, index=True)
-    game_id = Column(Integer, index=True, nullable=False)
-    item_id = Column(String(255), index=True, nullable=False)
-    text = Column(String(255), nullable=False)
-    lang = Column(String(16), nullable=False)

@@ -1,10 +1,14 @@
 import os
 import json
 import hashlib
-import logging
+
+import sqlalchemy.orm.session
+
+from base_logger import logger
+from sqlalchemy import or_
 from typing import Optional, Dict, List, Any
 from redis import asyncio as aioredis
-from fastapi import FastAPI, HTTPException, BackgroundTasks, Request, Depends
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Request, Depends, Header
 from fastapi.responses import RedirectResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -17,10 +21,12 @@ from sqlalchemy.orm import sessionmaker, Session
 import uvicorn
 
 from fetcher import fetch_genshin_impact_update, fetch_zzz_update, fetch_starrail_update
-from api_config import game_name_id_map, DOCS_URL
+from api_config import game_name_id_map, DOCS_URL, ACCEPTED_LANGUAGES, LANGUAGE_PAIRS, TOKEN
 from base_logger import logger
 from db.mysql_db import SessionLocal
 from db.schemas import TranslateRequest, TranslateResponse
+from db import crud
+from db import models
 
 
 # ------------------------------------------------------------------------
@@ -35,6 +41,7 @@ def get_game_id_by_name(this_game_name: str) -> Optional[int]:
 # ------------------------------------------------------------------------
 md5_dict_cache: Dict[str, Dict[str, str]] = {}
 
+
 # ------------------------------------------------------------------------
 # FASTAPI APP SETUP
 # ------------------------------------------------------------------------
@@ -46,15 +53,17 @@ async def lifespan(fastapi_app: FastAPI):
         redis_host = os.getenv("REDIS_HOST", "redis")
         redis_pool = aioredis.ConnectionPool.from_url(f"redis://{redis_host}", db=0)
         fastapi_app.state.redis = redis_pool
+        logger.info("Connected to Redis")
         redis_client = aioredis.Redis.from_pool(redis_pool)
         app.state.mysql = SessionLocal()
+        logger.info("Connected to MySQL")
         yield
         logger.info("Shutting down FastAPI app")
     finally:
         await fastapi_app.shutdown()
 
 
-app = FastAPI(docs_url=DOCS_URL, redoc_url=None)
+app = FastAPI(docs_url=DOCS_URL, redoc_url=None, lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -99,7 +108,7 @@ async def translate(request_data: TranslateRequest, request: Request):
         if not word:
             raise HTTPException(status_code=400, detail="item_name must be provided")
 
-        column_attr = get_lang_column(lang)
+        column_attr = crud.get_lang_column(lang)
         if not column_attr:
             raise HTTPException(status_code=403, detail="Language not recognized")
 
@@ -108,9 +117,9 @@ async def translate(request_data: TranslateRequest, request: Request):
             word_list = json.loads(word)
             rows = (
                 db.query(column_attr, getattr(type(column_attr.property.parent.class_), 'item_id'))
-                  .filter_by(game_id=game_id)
-                  .filter(column_attr.in_(word_list))
-                  .all()
+                .filter_by(game_id=game_id)
+                .filter(column_attr.in_(word_list))
+                .all()
             )
             # build { text_value -> item_id }
             text_to_id_map = {}
@@ -124,9 +133,9 @@ async def translate(request_data: TranslateRequest, request: Request):
             # Single word
             row = (
                 db.query(getattr(type(column_attr.property.parent.class_), 'item_id'))
-                  .filter_by(game_id=game_id)
-                  .filter(column_attr == word)
-                  .first()
+                .filter_by(game_id=game_id)
+                .filter(column_attr == word)
+                .first()
             )
             if not row:
                 raise HTTPException(status_code=404, detail="Hash ID not found")
@@ -140,7 +149,7 @@ async def translate(request_data: TranslateRequest, request: Request):
         if not item_id:
             raise HTTPException(status_code=400, detail="item_id must be provided")
 
-        column_attr = get_lang_column(lang)
+        column_attr = crud.get_lang_column(lang)
         if not column_attr:
             raise HTTPException(status_code=403, detail="Language not recognized")
 
@@ -149,9 +158,9 @@ async def translate(request_data: TranslateRequest, request: Request):
             item_id_list = json.loads(item_id)
             rows = (
                 db.query(getattr(type(column_attr.property.parent.class_), 'item_id'), column_attr)
-                  .filter_by(game_id=game_id)
-                  .filter(getattr(type(column_attr.property.parent.class_), 'item_id').in_(item_id_list))
-                  .all()
+                .filter_by(game_id=game_id)
+                .filter(getattr(type(column_attr.property.parent.class_), 'item_id').in_(item_id_list))
+                .all()
             )
             id_to_text_map = {r[0]: r[1] for r in rows}
             return_list = [id_to_text_map.get(iid, "") for iid in item_id_list]
@@ -160,8 +169,8 @@ async def translate(request_data: TranslateRequest, request: Request):
             # Single
             row = (
                 db.query(column_attr)
-                  .filter_by(game_id=game_id, item_id=item_id)
-                  .first()
+                .filter_by(game_id=game_id, item_id=item_id)
+                .first()
             )
             if not row:
                 raise HTTPException(status_code=404, detail="Word at this ID not found")
@@ -171,35 +180,73 @@ async def translate(request_data: TranslateRequest, request: Request):
         raise HTTPException(status_code=403, detail="Translate type not supported")
 
 
+def build_language_filter(word: str):
+    from sqlalchemy import or_
+    from db.crud import ACCEPTED_LANGUAGES, get_lang_column
+    or_conditions = []
+    for lang_code in ACCEPTED_LANGUAGES:
+        column_attr = get_lang_column(lang_code)
+        or_conditions.append(column_attr == word)
+    return or_(*or_conditions)
+
+
 @app.get("/identify/{this_game_name}/{word}", tags=["translate"])
-async def translate_generic(this_game_name: str, word: str, request: Request):
+async def identify_item_in_i18n(this_game_name: str, word: str, request: Request):
     """
-    Looks for an entry in GenericDict where text == word
-    Then returns item_id & a list of languages.
+    Identify an item in the i18n_dict, if the string is found in any language column.
     """
     db = request.app.state.mysql
     game_id = get_game_id_by_name(this_game_name)
     if game_id is None:
         raise HTTPException(status_code=404, detail="Game not supported")
 
-    rows = (
-        db.query(GenericDict)
-          .filter_by(game_id=game_id, text=word)
-          .all()
-    )
-    if not rows:
+    # Dynamically generate column selection
+    # Use get_lang_column(lang) to get the column attribute
+    # Logic: or_(xxx_text == word, yyy_text == word, ...)
+    or_clauses = []
+    for lang_code in ACCEPTED_LANGUAGES:
+        col_attr = crud.get_lang_column(lang_code)
+        if col_attr is not None:
+            or_clauses.append(col_attr == word)
+
+    if not or_clauses:
+        raise HTTPException(status_code=500, detail="No valid language columns found")
+
+    # Look up the word in the database
+    results = db.query(models.I18nDict).filter(
+        models.I18nDict.game_id == game_id,
+        or_(*or_clauses)
+    ).all()
+
+    if not results:
         raise HTTPException(status_code=404, detail="Hash ID not found")
 
-    # replicate your logic: collect lang codes => turn them into 5-letter codes if needed
+    # Match the results to the language codes
+    # if string matched, then the language code is determined
+    # Convert the language code to 5-letter code
     reversed_lp = {v: k for k, v in LANGUAGE_PAIRS.items()}
-    all_langs = []
-    for r in rows:
-        # e.g. r.lang might be "chs", we want the reversed 5-letter code
-        all_langs.append(reversed_lp.get(r.lang, r.lang))
+
+    matched_items = []
+    for row in results:
+        matched_langs = []
+
+        for lang_code in ACCEPTED_LANGUAGES:
+            col_attr = crud.get_lang_column(lang_code)
+            if col_attr is None:
+                continue
+
+            if getattr(row, f"{lang_code}_text") == word:
+                matched_5letter = reversed_lp.get(lang_code, lang_code)
+                matched_langs.append(matched_5letter)
+
+        matched_items.append({
+            "item_id": row.item_id,
+            "matched_langs": matched_langs
+        })
 
     return {
-        "item_id": rows[0].item_id,
-        "lang": all_langs
+        "count": len(matched_items),
+        "matched": matched_items
     }
 
 
@@ -239,11 +286,11 @@ def make_language_dict_json(lang: str, this_game_name: str, db):
     game_id = get_game_id_by_name(this_game_name)
     if not game_id:
         return False
-    col_attr = get_lang_column(lang)
+    col_attr = crud.get_lang_column(lang)
     if not col_attr:
         return False
 
-    rows = db.query(I18nDict.item_id, col_attr).filter_by(game_id=game_id).all()
+    rows = db.query(models.I18nDict.item_id, col_attr).filter_by(game_id=game_id).all()
 
     os.makedirs(f"dict/{this_game_name}", exist_ok=True)
     lang_dict = {}
@@ -256,18 +303,20 @@ def make_language_dict_json(lang: str, this_game_name: str, db):
     return True
 
 
-@app.get("/refresh/{this_game_name}/{token}", tags=["refresh"])
-async def refresh(this_game_name: str, token: str, background_tasks: BackgroundTasks):
-    if token != TOKEN:
+@app.get("/refresh/{this_game_name}", tags=["refresh"])
+async def refresh(this_game_name: str, background_tasks: BackgroundTasks, request: Request,
+                  x_uigf_token: str = Header(None)):
+    if x_uigf_token != TOKEN:
         raise HTTPException(status_code=403, detail="Token not accepted")
-    logging.info("Received refresh request for %s", this_game_name)
-    background_tasks.add_task(force_refresh_local_data, this_game_name)
+    db = request.app.state.mysql
+
+    logger.info("Received refresh request for %s", this_game_name)
+    background_tasks.add_task(force_refresh_local_data, this_game_name, db)
     return {"status": "Background refresh task added"}
 
 
-def force_refresh_local_data(this_game_name: str):
+def force_refresh_local_data(this_game_name: str, db: sqlalchemy.orm.session.Session):
     """ Runs as a background task: fetch -> wipe -> insert -> build JSON dict -> MD5. """
-    db = next(get_db())  # or create a new session
     try:
         if this_game_name == "genshin":
             localization_dict = fetch_genshin_impact_update()
@@ -281,12 +330,12 @@ def force_refresh_local_data(this_game_name: str):
         else:
             raise HTTPException(status_code=400, detail="Game not supported.")
 
-        logging.info("Fetched %d items from %s", len(localization_dict), this_game_name)
+        logger.info(f"Fetched {len(localization_dict)} items from {this_game_name}")
 
         # Clear old data
-        clear_game_data(db, game_id)
+        crud.clear_game_data(db, game_id)
         # Insert new data
-        insert_localization_data(db, game_id, localization_dict)
+        crud.insert_localization_data(db, game_id, localization_dict)
 
         # Build dict files
         for language in ACCEPTED_LANGUAGES:
