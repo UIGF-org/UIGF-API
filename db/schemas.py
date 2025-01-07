@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import Optional, Any, Literal
 from api_config import ACCEPTED_LANGUAGES
 
@@ -17,3 +17,9 @@ class TranslateRequest(BaseModel):
 class TranslateResponse(BaseModel):
     item_id: Optional[Any] = None
     item_name: Optional[Any] = None
+
+    @field_validator("item_name", mode="before")
+    def process_item_name(cls, value):
+        if value is not None and isinstance(value, str):
+            return value.replace("\\'", "'")
+        return value
