@@ -40,7 +40,7 @@ def fetch_genshin_impact_update():
         this_name_hash_id = str(item["NameTextMapHash"])
         this_item_id = int(item["id"])
         name_list = [
-            lang_dict[this_name_hash_id].replace("'", "\\'") if this_name_hash_id in lang_dict.keys() else "" for
+            lang_dict[this_name_hash_id] if this_name_hash_id in lang_dict.keys() else "" for
             lang_dict in dict_list
         ]
         lang_dict = {
@@ -104,7 +104,7 @@ def fetch_starrail_update():
             raise ValueError(f"Unknown item type: {item}")
 
         name_list = [
-            lang_dict[this_name_hash_id].replace("'", "\\'") if this_name_hash_id in lang_dict.keys() else "" for
+            lang_dict[this_name_hash_id] if this_name_hash_id in lang_dict.keys() else "" for
             lang_dict in dict_list
         ]
         lang_dict = {
@@ -192,7 +192,7 @@ def fetch_zzz_update():
         this_name_hash_id = item[name_hash_id]
         this_item_id = item[item_id]
         name_list = [
-            lang_dict[this_name_hash_id].replace("'", "\\'") if this_name_hash_id in lang_dict.keys() else "" for
+            lang_dict[this_name_hash_id] if this_name_hash_id in lang_dict.keys() else "" for
             lang_dict in dict_list
         ]
         lang_dict = {

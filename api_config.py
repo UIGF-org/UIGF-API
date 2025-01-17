@@ -38,9 +38,9 @@ LANGUAGE_PAIRS = {
     "md5": "md5"
 }
 # App Settings
-TOKEN = os.environ['TOKEN']
-DOCS_URL = os.environ['DOCS_URL']
-API_VERSION = os.environ['IMAGE_TAG']
+TOKEN = os.getenv("TOKEN", "APITOKEN")
+DOCS_URL = os.getenv("DOCS_URL", "/api/v1/docs")
+API_VERSION = os.getenv("API_VERSION", "v1")
 
 # MySQL Settings
 DB_HOST = os.getenv('DB_HOST', None)
