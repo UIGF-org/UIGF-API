@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError, PendingRollbackError
 import json
 import redis
 from db.models import I18nDict
@@ -39,10 +39,14 @@ def clear_game_data(db: Session, game_id: int):
     try:
         db.query(I18nDict).filter(I18nDict.game_id == game_id).delete()
         db.commit()
-    except SQLAlchemyError as e:
+    except (SQLAlchemyError, PendingRollbackError) as e:
         logger.error(f"Error clearing game data: {e}")
-        db.rollback()
-        raise RuntimeError("Error clearing game data")
+        try:
+            db.rollback()
+            db.query(I18nDict).filter(I18nDict.game_id == game_id).delete()
+            db.commit()
+        except SQLAlchemyError as e:
+            raise RuntimeError(f"Error clearing game data: {e}")
 
 
 def insert_localization_data(db: Session, redis_client: redis.Redis, game_id: int,
@@ -80,8 +84,12 @@ def insert_localization_data(db: Session, redis_client: redis.Redis, game_id: in
             db.commit()
         except SQLAlchemyError as e:
             logger.error(f"Error inserting localization data: {e}")
-            db.rollback()
-            raise RuntimeError("Error inserting localization data")
+            try:
+                db.rollback()
+                db.add(entry)
+                db.commit()
+            except SQLAlchemyError as e:
+                raise RuntimeError(f"Error inserting localization data: {e}")
     logger.info(f"Inserted {len(i18n_entries)} rows into i18n_dict, task finished.")
 
     pipe = redis_client.pipeline(transaction=False)
