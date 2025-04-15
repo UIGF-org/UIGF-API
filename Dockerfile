@@ -7,6 +7,7 @@ RUN pip install "fastapi[standard]"
 RUN pip install redis
 RUN pip install sqlalchemy
 RUN pip install pymysql
+RUN pip install "sentry-sdk[fastapi]"
 RUN pip install pyinstaller
 RUN pyinstaller -F main.py
 
