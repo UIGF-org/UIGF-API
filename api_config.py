@@ -57,3 +57,4 @@ game_name_id_map = {
     "starrail": 2,
     "zzz": 3
 }
+SENTRY_FULL_URL = os.getenv("SENTRY_FULL_URL", None)

@@ -3,6 +3,9 @@ import json
 import hashlib
 import redis
 import uvicorn
+import sentry_sdk
+from sentry_sdk.integrations.starlette import StarletteIntegration
+from sentry_sdk.integrations.fastapi import FastApiIntegration
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Request, Header
 from fastapi.responses import RedirectResponse, FileResponse
@@ -10,14 +13,34 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from typing import Optional, Dict
-
 from fetcher import fetch_genshin_impact_update, fetch_zzz_update, fetch_starrail_update
-from api_config import game_name_id_map, DOCS_URL, ACCEPTED_LANGUAGES, LANGUAGE_PAIRS, TOKEN, API_VERSION
+from api_config import game_name_id_map, DOCS_URL, ACCEPTED_LANGUAGES, LANGUAGE_PAIRS, TOKEN, API_VERSION, SENTRY_FULL_URL
 from base_logger import logger
 from db.mysql_db import SessionLocal
 from db.schemas import TranslateRequest, TranslateResponse
 from db import crud
 from db import models
+
+
+# ------------------------------------------------------------------------
+# SENTRY SETUP
+# ------------------------------------------------------------------------
+if SENTRY_FULL_URL:
+    sentry_sdk.init(
+        dsn=SENTRY_FULL_URL,
+        send_default_pii=True,
+        integrations=[
+            StarletteIntegration(
+                transaction_style="url",
+                failed_request_status_codes={403, *range(500, 599)},
+            ),
+            FastApiIntegration(
+                transaction_style="url",
+                failed_request_status_codes={403, *range(500, 599)},
+            ),
+        ],
+        profiles_sample_rate=1.0
+    )
 
 
 # ------------------------------------------------------------------------
@@ -411,6 +434,11 @@ def make_checksum(this_game_name: str):
             json.dump(checksum_dict, wf, indent=2)
 
     return True
+
+
+@app.get("/sentry-debug")
+async def trigger_error():
+    division_by_zero = 1 / 0
 
 
 if __name__ == "__main__":
