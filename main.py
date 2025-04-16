@@ -146,7 +146,10 @@ async def translate(request_data: TranslateRequest, request: Request):
 
         if word.startswith("[") and word.endswith("]"):
             # It's a list of words
-            word_list = json.loads(word)
+            try:
+                word_list = json.loads(word)
+            except json.JSONDecodeError:
+                raise HTTPException(status_code=400, detail="Invalid JSON format for item_name; JavaScript array is not supported, please use Python list format.")
             rows = (
                 db.query(column_attr, getattr(column_attr.property.parent.class_, 'item_id'))
                 .filter_by(game_id=game_id)
