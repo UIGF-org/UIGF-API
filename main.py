@@ -125,8 +125,6 @@ async def translate(request_data: TranslateRequest, request: Request):
         return HTTPException(status_code=403, detail="Language not supported")
     if len(lang) == 5 and lang in LANGUAGE_PAIRS:
         lang = LANGUAGE_PAIRS[lang]
-    else:
-        raise HTTPException(status_code=403, detail="Language not supported")
 
     game_id = get_game_id_by_name(request_data.game)
     if game_id is None:
