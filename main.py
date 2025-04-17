@@ -7,20 +7,21 @@ import sentry_sdk
 from sentry_sdk.integrations.starlette import StarletteIntegration
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException, BackgroundTasks, Request, Header
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Request, Header, Depends
 from fastapi.responses import RedirectResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from typing import Optional, Dict
 from fetcher import fetch_genshin_impact_update, fetch_zzz_update, fetch_starrail_update
-from api_config import game_name_id_map, DOCS_URL, ACCEPTED_LANGUAGES, LANGUAGE_PAIRS, TOKEN, API_VERSION, SENTRY_FULL_URL
+from api_config import game_name_id_map, DOCS_URL, ACCEPTED_LANGUAGES, LANGUAGE_PAIRS, TOKEN, API_VERSION, \
+    SENTRY_FULL_URL
 from base_logger import logger
 from db.mysql_db import SessionLocal
 from db.schemas import TranslateRequest, TranslateResponse
 from db import crud
 from db import models
-
+from typing import Generator
 
 # ------------------------------------------------------------------------
 # SENTRY SETUP
@@ -60,6 +61,19 @@ md5_dict_cache: Dict[str, Dict[str, str]] = {}
 # FASTAPI APP SETUP
 # ------------------------------------------------------------------------
 
+
+def get_db() -> Generator[Session, None, None]:
+    db = SessionLocal()
+    try:
+        yield db
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
 @asynccontextmanager
 async def lifespan(fastapi_app: FastAPI):
     try:
@@ -68,8 +82,6 @@ async def lifespan(fastapi_app: FastAPI):
         redis_pool = redis.ConnectionPool.from_url(f"redis://{redis_host}", db=0)
         fastapi_app.state.redis = redis_pool
         logger.info("Connected to Redis")
-        app.state.mysql = SessionLocal()
-        logger.info("Connected to MySQL")
         yield
         logger.info("Shutting down FastAPI app")
     finally:
@@ -104,7 +116,7 @@ async def root():
 
 
 @app.post("/translate", response_model=TranslateResponse, tags=["translate"])
-async def translate(request_data: TranslateRequest, request: Request):
+async def translate(request_data: TranslateRequest, db: Session = Depends(get_db)):
     """
     Translate an item name to an item ID, or vice versa.
 
@@ -117,7 +129,6 @@ async def translate(request_data: TranslateRequest, request: Request):
     If **`normal`**, text -> item_id
     If **`reverse`**, item_id -> text
     """
-    db = request.app.state.mysql
     # Normalize language
     lang = request_data.lang.lower()
     if lang not in ACCEPTED_LANGUAGES:
@@ -149,7 +160,8 @@ async def translate(request_data: TranslateRequest, request: Request):
             try:
                 word_list = json.loads(word)
             except json.JSONDecodeError:
-                raise HTTPException(status_code=400, detail="Invalid JSON format for item_name; JavaScript array is not supported, please use Python list format.")
+                raise HTTPException(status_code=400,
+                                    detail="Invalid JSON format for item_name; JavaScript array is not supported, please use Python list format.")
             rows = (
                 db.query(column_attr, getattr(column_attr.property.parent.class_, 'item_id'))
                 .filter_by(game_id=game_id)
@@ -222,11 +234,10 @@ def build_language_filter(word: str):
 
 
 @app.get("/identify/{this_game_name}/{word}", tags=["translate"])
-async def identify_item_in_i18n(this_game_name: str, word: str, request: Request):
+async def identify_item_in_i18n(this_game_name: str, word: str, db: Session = Depends(get_db)):
     """
     Identify an item in the i18n_dict, if the string is found in any language column.
     """
-    db = request.app.state.mysql
     game_id = get_game_id_by_name(this_game_name)
     if game_id is None:
         raise HTTPException(status_code=404, detail="Game not supported")
@@ -282,8 +293,7 @@ async def identify_item_in_i18n(this_game_name: str, word: str, request: Request
 
 
 @app.get("/dict/{this_game_name}/{lang}.json", tags=["dictionary"])
-async def download_language_dict_json(this_game_name: str, lang: str, request: Request):
-    db = request.app.state.mysql
+async def download_language_dict_json(this_game_name: str, lang: str, db: Session = Depends(get_db)):
     # Basic sanity checks
     lang = lang.lower()
     if lang not in ACCEPTED_LANGUAGES and lang not in ["all", "md5"]:
@@ -336,10 +346,9 @@ def make_language_dict_json(lang: str, this_game_name: str, db):
 
 @app.get("/refresh/{this_game_name}", tags=["refresh"])
 async def refresh(this_game_name: str, background_tasks: BackgroundTasks, request: Request,
-                  x_uigf_token: str = Header(None)):
+                  x_uigf_token: str = Header(None), db: Session = Depends(get_db)):
     if x_uigf_token != TOKEN:
         raise HTTPException(status_code=403, detail="Token not accepted")
-    db = request.app.state.mysql
     redis_client = redis.Redis.from_pool(request.app.state.redis)
 
     logger.info(f"Received refresh request for {this_game_name}")
@@ -390,7 +399,6 @@ def force_refresh_local_data(this_game_name: str, db: Session, redis_client: red
 
 @app.get("/md5/{this_game_name}", tags=["checksum"])
 async def get_checksum(this_game_name: str, background_tasks: BackgroundTasks):
-
     if this_game_name not in game_name_id_map:
         raise HTTPException(status_code=403, detail="Game name not accepted")
     try:
