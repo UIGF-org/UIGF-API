@@ -146,8 +146,8 @@ async def root():
 @app.post("/translate", response_model=TranslateResponse, tags=["translate"])
 async def translate(request_data: TranslateRequest, db: Session = Depends(get_db)):
     lang = request_data.lang.lower()
-    if lang not in ACCEPTED_LANGUAGES:
-        if len(lang) == 5 and lang in LANGUAGE_PAIRS:
+    if lang not in CORE_LANGUAGES:
+        if lang in ACCEPTED_LANGUAGES:
             lang = LANGUAGE_PAIRS[lang]
         else:
             raise HTTPException(status_code=403, detail="Language not supported")
