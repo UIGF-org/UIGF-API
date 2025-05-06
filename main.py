@@ -25,6 +25,7 @@ from sqlalchemy.orm import Session
 
 from api_config import (
     ACCEPTED_LANGUAGES,
+    CORE_LANGUAGES,
     API_VERSION,
     DOCS_URL,
     LANGUAGE_PAIRS,
@@ -336,13 +337,12 @@ def force_refresh_local_data(game: str, redis_client: redis.Redis):
         crud.insert_localization_data(db, redis_client, game_id, localization_dict)
         db.commit()
 
-        for language in ACCEPTED_LANGUAGES:
-            if len(language) <= 5:
-                make_language_dict_json(language, game, db)
+        for language in CORE_LANGUAGES:
+            make_language_dict_json(language, game, db)
 
         all_dict = {
             language: json.load(open(f"dict/{game}/{language}.json", encoding="utf-8"))
-            for language in ACCEPTED_LANGUAGES if len(language) <= 5
+            for language in CORE_LANGUAGES
         }
         with open(f"dict/{game}/all.json", "w", encoding="utf-8") as f:
             json.dump(all_dict, f, indent=4, ensure_ascii=False)

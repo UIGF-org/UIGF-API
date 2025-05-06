@@ -7,6 +7,7 @@ dotenv.load_dotenv()
 ACCEPTED_LANGUAGES = ["chs", "cht", "de", "en", "es", "fr", "id", "jp", "kr", "pt", "ru", "th", "vi",
                       "zh-cn", "zh-tw", "de-de", "en-us", "es-es", "fr-fr", "id-id", "ja-jp", "ko-kr", "pt-pt", "ru-ru",
                       "th-th", "vi-vn"]
+CORE_LANGUAGES = ["chs", "cht", "de", "en", "es", "fr", "id", "jp", "kr", "pt", "ru", "th", "vi"]
 LANGUAGE_PAIRS = {
     "chs": "zh-cn",
     "cht": "zh-tw",
