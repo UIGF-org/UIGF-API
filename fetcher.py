@@ -5,7 +5,7 @@ from base_logger import logger
 
 
 def fetch_genshin_impact_update():
-    target_host = "https://raw.githubusercontent.com/Masterain98/GenshinData/main/"
+    target_host = "https://raw.githubusercontent.com/UIGF-Org/GenshinData/main/"
     avatar_config_file = "AvatarExcelConfigData.json"
     weapon_config_file = "WeaponExcelConfigData.json"
     resp = {}

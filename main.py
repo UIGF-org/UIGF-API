@@ -337,11 +337,12 @@ def force_refresh_local_data(game: str, redis_client: redis.Redis):
         db.commit()
 
         for language in ACCEPTED_LANGUAGES:
-            make_language_dict_json(language, game, db)
+            if len(language) <= 5:
+                make_language_dict_json(language, game, db)
 
         all_dict = {
             language: json.load(open(f"dict/{game}/{language}.json", encoding="utf-8"))
-            for language in ACCEPTED_LANGUAGES
+            for language in ACCEPTED_LANGUAGES if len(language) <= 5
         }
         with open(f"dict/{game}/all.json", "w", encoding="utf-8") as f:
             json.dump(all_dict, f, indent=4, ensure_ascii=False)
