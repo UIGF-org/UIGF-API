@@ -237,9 +237,8 @@ async def identify_item_in_i18n(game: str, word: str, db: Session = Depends(get_
 
     or_clauses = [
         (col := crud.get_lang_column(lang_code)) == word
-        for lang_code in ACCEPTED_LANGUAGES
+        for lang_code in CORE_LANGUAGES
         if (col := crud.get_lang_column(lang_code)) is not None
-        and len(lang_code) < 5
     ]
     if not or_clauses:
         raise HTTPException(status_code=500, detail="No valid language columns found")
@@ -257,7 +256,7 @@ async def identify_item_in_i18n(game: str, word: str, db: Session = Depends(get_
     for row in results:
         langs = [
             reversed_lp.get(code, code)
-            for code in ACCEPTED_LANGUAGES
+            for code in CORE_LANGUAGES
             if getattr(row, f"{code}_text") == word
         ]
         matched_items.append({"item_id": row.item_id, "matched_langs": langs})
