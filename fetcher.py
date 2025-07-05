@@ -4,6 +4,26 @@ import os
 from base_logger import logger
 
 
+DEPRECATED_GENSHIN_ID = {
+    11506: "磐岩结绿",
+    11507: "凭虚",
+    12505: "砥厄鱼",
+    12506: "异史",
+    13506: "弦主",
+    15504: "阳龙之梦",
+    15505: "悬黎干钩",
+    15506: "破镜",
+    12304: "石英大剑",
+    14306: "琉珀玦",
+    15306: "黑檀弓",
+    13304: "「旷怨」",
+    11419: "「一心传」名刀 × 3",
+    11420: "「一心传」名刀 × 3",
+    11421: "「一心传」名刀 × 3",
+    11429: "水仙十字之剑",
+}
+DEPRECATED_ID = set(DEPRECATED_GENSHIN_ID.keys())
+
 def fetch_genshin_impact_update():
     target_host = "https://raw.githubusercontent.com/UIGF-Org/GenshinData/main/"
     avatar_config_file = "AvatarExcelConfigData.json"
@@ -36,9 +56,13 @@ def fetch_genshin_impact_update():
         pass
 
     # Item list has weapon list and character list
+
     for item in item_list:
         this_name_hash_id = str(item["NameTextMapHash"])
         this_item_id = int(item["id"])
+        if this_item_id in DEPRECATED_ID:
+            logger.warning(f"Item ID {this_item_id} is deprecated, skipping...")
+            continue
         name_list = [
             lang_dict[this_name_hash_id] if this_name_hash_id in lang_dict.keys() else "" for
             lang_dict in dict_list
