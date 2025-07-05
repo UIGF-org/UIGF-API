@@ -1,9 +1,6 @@
 import httpx
 import json
 import os
-
-from sqlalchemy.util import deprecated
-
 from base_logger import logger
 
 
@@ -25,7 +22,7 @@ DEPRECATED_GENSHIN_ID = {
     11421: "「一心传」名刀 × 3",
     11429: "水仙十字之剑",
 }
-
+DEPRECATED_ID = set(DEPRECATED_GENSHIN_ID.keys())
 
 def fetch_genshin_impact_update():
     target_host = "https://raw.githubusercontent.com/UIGF-Org/GenshinData/main/"
@@ -59,11 +56,11 @@ def fetch_genshin_impact_update():
         pass
 
     # Item list has weapon list and character list
-    deprecated_id = set(DEPRECATED_GENSHIN_ID.keys())
+
     for item in item_list:
         this_name_hash_id = str(item["NameTextMapHash"])
         this_item_id = int(item["id"])
-        if this_item_id in deprecated_id:
+        if this_item_id in DEPRECATED_ID:
             logger.warning(f"Item ID {this_item_id} is deprecated, skipping...")
             continue
         name_list = [
