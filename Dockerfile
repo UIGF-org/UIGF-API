@@ -1,6 +1,6 @@
 #!/bin/sh
 # Build Stage
-FROM python:3.12 AS builder
+FROM python:3.12.1 AS builder
 WORKDIR /code
 ADD . /code
 RUN pip install "fastapi[standard]"
@@ -8,6 +8,7 @@ RUN pip install redis
 RUN pip install sqlalchemy
 RUN pip install pymysql
 RUN pip install "sentry-sdk[fastapi]"
+RUN pip install cryptography
 RUN pip install pyinstaller
 RUN pyinstaller -F main.py
 
