@@ -7,16 +7,19 @@ WORKDIR /code
 
 # Use --mount=type=cache to cache pip downloads between builds
 COPY requirements.txt /code/requirements.txt
+COPY requirements.build.txt /code/requirements.build.txt
 RUN --mount=type=cache,target=/root/.cache/pip,id=pip-cache \
     python -m pip install --upgrade pip wheel \
- && pip wheel -r requirements.txt -w /wheels
+ && pip wheel -r requirements.txt -w /wheels \
+ && pip wheel -r requirements.build.txt -w /wheels
 
 # Coyp source code
 COPY . /code
 
 # Install dependencies from wheels cache (offline installation)
 RUN --mount=type=cache,target=/root/.cache/pip,id=pip-cache \
-    pip install --no-index --find-links=/wheels -r requirements.txt
+    pip install --no-index --find-links=/wheels -r requirements.txt \
+ && pip install --no-index --find-links=/wheels -r requirements.build.txt
 
 # Run PyInstaller to create a single executable
 RUN --mount=type=cache,target=/root/.cache/pip,id=pip-cache \
