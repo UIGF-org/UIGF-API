@@ -1,0 +1,3 @@
+pyinstaller==6.10.0
+# setuptools is pinned below version 81 due to incompatibility with PyInstaller; see https://github.com/pyinstaller/pyinstaller/issues/7994
+setuptools<81
