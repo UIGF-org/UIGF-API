@@ -13,7 +13,7 @@ services:
     volumes:
       - ./cache:/app/cache
       - ./dict:/app/dict
-      - ./.env:/app/.env
+      - ./.env:/app/.env:ro
     restart: unless-stopped
     depends_on:
       - tunnel
