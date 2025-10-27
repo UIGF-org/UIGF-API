@@ -22,8 +22,7 @@ RUN --mount=type=cache,target=/root/.cache/pip,id=pip-cache \
 
 # Run PyInstaller to create a single executable
 RUN --mount=type=cache,target=/root/.cache/pip,id=pip-cache \
-    pip install --no-index --find-links=/wheels pyinstaller \
- && pyinstaller -F main.py
+    pyinstaller -F main.py
 
 
 # Runtime stage
