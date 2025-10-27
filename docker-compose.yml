@@ -6,10 +6,8 @@ services:
       context: .
       dockerfile: Dockerfile
       target: runtime
-    image: ${IMAGE_NAME}:${IMAGE_TAG}
+    image: ${IMAGE_NAME}:latest
     container_name: ${CONTAINER_NAME}-Server
-    ports:
-      - "${EXTERNAL_PORT}:8080"
     volumes:
       - ./cache:/app/cache
       - ./dict:/app/dict

@@ -1,6 +1,5 @@
 # syntax=docker/dockerfile:1.6
 
-
 # Build stage
 FROM python:3.12 AS builder
 WORKDIR /code
@@ -43,5 +42,4 @@ COPY --from=builder /code/dist/main /app/main
 # HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
 #   CMD curl -fsS http://localhost:8080/health || exit 1
 
-EXPOSE 8080
 ENTRYPOINT ["/app/main"]
