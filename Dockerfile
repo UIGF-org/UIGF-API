@@ -12,7 +12,7 @@ RUN --mount=type=cache,target=/root/.cache/pip,id=pip-cache \
  && pip wheel -r requirements.txt -w /wheels \
  && pip wheel -r requirements.build.txt -w /wheels
 
-# Coyp source code
+# Copy source code
 COPY . /code
 
 # Install dependencies from wheels cache (offline installation)
