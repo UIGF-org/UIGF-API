@@ -24,65 +24,62 @@ DEPRECATED_GENSHIN_ID = {
 }
 DEPRECATED_ID = set(DEPRECATED_GENSHIN_ID.keys())
 
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+
+
 def fetch_genshin_impact_update():
-    target_host = "https://raw.githubusercontent.com/UIGF-Org/GenshinData/main/"
-    avatar_config_file = "AvatarExcelConfigData.json"
-    weapon_config_file = "WeaponExcelConfigData.json"
+    if GITHUB_TOKEN:
+        headers = {"Authorization": f"Bearer {GITHUB_TOKEN}"}
+        gh_client = httpx.Client(headers=headers)
+    else:
+        raise ValueError("GITHUB_TOKEN is not set in environment variables")
+    snap_metadata_lang = ["CHS", "CHT", "DE", "EN", "ES", "FR", "ID", "IT", "JP", "KR", "PT", "RU", "TH", "TR", "VI"]
+    target_host = "https://raw.githubusercontent.com/DGP-Studio/Snap.Metadata/main"
+    name_to_id = {}
+    id_to_name = {}
     resp = {}
+    for lang in snap_metadata_lang:
+        this_lang_name_to_id = {}
+        this_lang_id_to_name = {}
+        # Weapon
+        weapon_config_file = f"{target_host}/Genshin/{lang}/Weapon.json"
+        weapon_data = gh_client.get(weapon_config_file).json()
+        for weapon in weapon_data:
+            this_weapon_name = weapon.get("Name", "")
+            this_weapon_id = weapon.get("Id", 0)
+            if this_weapon_name and this_weapon_id:
+                this_lang_name_to_id[this_weapon_name] = this_weapon_id
+                this_lang_id_to_name[this_weapon_id] = this_weapon_name
 
-    avatar_excel_config_data = json.loads(httpx.get(target_host + avatar_config_file).text)
-    weapon_excel_config_data = json.loads(httpx.get(target_host + weapon_config_file).text)
-    chs_dict = json.loads(httpx.get(target_host + "TextMap/TextMapCHS.json").text)
-    cht_dict = json.loads(httpx.get(target_host + "TextMap/TextMapCHT.json").text)
-    de_dict = json.loads(httpx.get(target_host + "TextMap/TextMapDE.json").text)
-    en_dict = json.loads(httpx.get(target_host + "TextMap/TextMapEN.json").text)
-    es_dict = json.loads(httpx.get(target_host + "TextMap/TextMapES.json").text)
-    fr_dict = json.loads(httpx.get(target_host + "TextMap/TextMapFR.json").text)
-    id_dict = json.loads(httpx.get(target_host + "TextMap/TextMapID.json").text)
-    jp_dict = json.loads(httpx.get(target_host + "TextMap/TextMapJP.json").text)
-    kr_dict = json.loads(httpx.get(target_host + "TextMap/TextMapKR.json").text)
-    pt_dict = json.loads(httpx.get(target_host + "TextMap/TextMapPT.json").text)
-    ru_dict = json.loads(httpx.get(target_host + "TextMap/TextMapRU.json").text)
-    th_dict = json.loads(httpx.get(target_host + "TextMap/TextMapTH.json").text)
-    vi_dict = json.loads(httpx.get(target_host + "TextMap/TextMapVI.json").text)
-    dict_list = [chs_dict, cht_dict, de_dict, en_dict, es_dict, fr_dict, id_dict,
-                 jp_dict, kr_dict, pt_dict, ru_dict, th_dict, vi_dict]
-    item_list = avatar_excel_config_data + weapon_excel_config_data
+        # Character
+        meta_file = f"{target_host}/Genshin/{lang}/Meta.json"
+        meta_data = gh_client.get(meta_file).json()
+        avatar_file_index = [index for index in meta_data.keys() if index.startswith("Avatar/")]
+        for avtar_indx in avatar_file_index:
+            avatar_file_url = f"{target_host}/Genshin/{lang}/{avtar_indx}.json"
+            avatar_data = gh_client.get(avatar_file_url).json()
+            avatar_name = avatar_data.get("Name", "")
+            avatar_id = avatar_data.get("Id", 0)
+            if avatar_name and avatar_id:
+                this_lang_name_to_id[avatar_name] = avatar_id
+                this_lang_id_to_name[avatar_id] = avatar_name
 
-    try:
-        for file in os.listdir("dict/genshin"):
-            os.remove("dict/genshin/" + file)
-    except FileNotFoundError:
-        pass
+        name_to_id[lang] = this_lang_name_to_id
+        id_to_name[lang] = this_lang_id_to_name
 
-    # Item list has weapon list and character list
+    all_item_ids = id_to_name["CHS"].keys()
+    logger.info(f"Fetched total {len(all_item_ids)} unique item IDs from Genshin Impact Snap.Metadata")
 
-    for item in item_list:
-        this_name_hash_id = str(item["NameTextMapHash"])
-        this_item_id = int(item["id"])
-        if this_item_id in DEPRECATED_ID:
-            logger.warning(f"Item ID {this_item_id} is deprecated, skipping...")
+    for item_id in all_item_ids:
+        if item_id in DEPRECATED_ID:
+            logger.warning(f"Item ID {item_id} is deprecated, skipping...")
             continue
-        name_list = [
-            lang_dict[this_name_hash_id] if this_name_hash_id in lang_dict.keys() else "" for
-            lang_dict in dict_list
-        ]
-        lang_dict = {
-            "chs": name_list[0],
-            "cht": name_list[1],
-            "de": name_list[2],
-            "en": name_list[3],
-            "es": name_list[4],
-            "fr": name_list[5],
-            "id": name_list[6],
-            "jp": name_list[7],
-            "kr": name_list[8],
-            "pt": name_list[9],
-            "ru": name_list[10],
-            "th": name_list[11],
-            "vi": name_list[12]
-        }
-        resp[this_item_id] = lang_dict
+        lang_dict = {}
+        for lang in snap_metadata_lang:
+            item_name = id_to_name[lang].get(item_id, "")
+            lang_code = lang.lower()
+            lang_dict[lang_code] = item_name
+        resp[item_id] = lang_dict
     return resp
 
 
