@@ -1,6 +1,8 @@
 import httpx
+import io
 import json
 import os
+import zipfile
 from base_logger import logger
 
 
@@ -26,60 +28,106 @@ DEPRECATED_ID = set(DEPRECATED_GENSHIN_ID.keys())
 
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 
+SNAP_METADATA_LANGS = ["CHS", "CHT", "DE", "EN", "ES", "FR", "ID", "IT", "JP", "KR", "PT", "RU", "TH", "TR", "VI"]
+SNAP_METADATA_ZIP_URL = "https://github.com/DGP-Studio/Snap.Metadata/archive/refs/heads/main.zip"
+SNAP_METADATA_ZIP_PREFIX = "Snap.Metadata-main"  # Folder name inside the zip
+
+
+def _read_json_from_zip(zf: zipfile.ZipFile, path: str) -> dict | list | None:
+    """Read and parse a JSON file from the zip archive."""
+    try:
+        with zf.open(path) as f:
+            return json.load(f)
+    except (KeyError, json.JSONDecodeError) as e:
+        logger.error(f"Failed to read {path} from zip: {e}")
+        return None
+
 
 def fetch_genshin_impact_update():
-    if GITHUB_TOKEN:
-        headers = {"Authorization": f"Bearer {GITHUB_TOKEN}"}
-        gh_client = httpx.Client(headers=headers)
-    else:
+    """
+    Fetch Genshin Impact item data from Snap.Metadata.
+    
+    Optimization strategy:
+    - Download the entire repository as a ZIP file (1 HTTP request)
+    - Extract and process files in memory
+    
+    This reduces ~1600+ HTTP requests to just 1 request + local I/O operations.
+    """
+    if not GITHUB_TOKEN:
         raise ValueError("GITHUB_TOKEN is not set in environment variables")
-    snap_metadata_lang = ["CHS", "CHT", "DE", "EN", "ES", "FR", "ID", "IT", "JP", "KR", "PT", "RU", "TH", "TR", "VI"]
-    target_host = "https://raw.githubusercontent.com/DGP-Studio/Snap.Metadata/main"
-    name_to_id = {}
-    id_to_name = {}
-    resp = {}
-    for lang in snap_metadata_lang:
-        this_lang_name_to_id = {}
-        this_lang_id_to_name = {}
-        # Weapon
-        weapon_config_file = f"{target_host}/Genshin/{lang}/Weapon.json"
-        weapon_data = gh_client.get(weapon_config_file).json()
-        for weapon in weapon_data:
-            this_weapon_name = weapon.get("Name", "")
-            this_weapon_id = weapon.get("Id", 0)
-            if this_weapon_name and this_weapon_id:
-                this_lang_name_to_id[this_weapon_name] = this_weapon_id
-                this_lang_id_to_name[this_weapon_id] = this_weapon_name
-
-        # Character
-        meta_file = f"{target_host}/Genshin/{lang}/Meta.json"
-        meta_data = gh_client.get(meta_file).json()
-        avatar_file_index = [index for index in meta_data.keys() if index.startswith("Avatar/")]
-        for avtar_indx in avatar_file_index:
-            avatar_file_url = f"{target_host}/Genshin/{lang}/{avtar_indx}.json"
-            avatar_data = gh_client.get(avatar_file_url).json()
-            avatar_name = avatar_data.get("Name", "")
-            avatar_id = avatar_data.get("Id", 0)
-            if avatar_name and avatar_id:
-                this_lang_name_to_id[avatar_name] = avatar_id
-                this_lang_id_to_name[avatar_id] = avatar_name
-
-        name_to_id[lang] = this_lang_name_to_id
-        id_to_name[lang] = this_lang_id_to_name
-
+    
+    headers = {"Authorization": f"Bearer {GITHUB_TOKEN}"}
+    
+    # Step 1: Download the repository ZIP file
+    logger.info("Downloading Snap.Metadata repository ZIP...")
+    with httpx.Client(headers=headers, timeout=120.0, follow_redirects=True) as client:
+        resp = client.get(SNAP_METADATA_ZIP_URL)
+        resp.raise_for_status()
+        zip_data = resp.content
+    
+    logger.info(f"Downloaded ZIP file: {len(zip_data) / 1024 / 1024:.2f} MB")
+    
+    # Step 2: Open ZIP in memory and extract data
+    id_to_name: dict[str, dict[int, str]] = {}
+    
+    with zipfile.ZipFile(io.BytesIO(zip_data), 'r') as zf:
+        # Get avatar IDs from CHS Meta.json
+        meta_path = f"{SNAP_METADATA_ZIP_PREFIX}/Genshin/CHS/Meta.json"
+        meta_data = _read_json_from_zip(zf, meta_path)
+        
+        if not meta_data:
+            raise RuntimeError("Failed to read Meta.json from ZIP")
+        
+        avatar_ids = [
+            key.split("/")[1] 
+            for key in meta_data.keys() 
+            if key.startswith("Avatar/")
+        ]
+        logger.info(f"Found {len(avatar_ids)} avatar IDs from Meta.json")
+        
+        # Process each language
+        for lang in SNAP_METADATA_LANGS:
+            this_lang_id_to_name: dict[int, str] = {}
+            
+            # Read Weapon.json
+            weapon_path = f"{SNAP_METADATA_ZIP_PREFIX}/Genshin/{lang}/Weapon.json"
+            weapon_data = _read_json_from_zip(zf, weapon_path)
+            if weapon_data:
+                for weapon in weapon_data:
+                    weapon_name = weapon.get("Name", "")
+                    weapon_id = weapon.get("Id", 0)
+                    if weapon_name and weapon_id:
+                        this_lang_id_to_name[weapon_id] = weapon_name
+            
+            # Read each Avatar file
+            for avatar_id in avatar_ids:
+                avatar_path = f"{SNAP_METADATA_ZIP_PREFIX}/Genshin/{lang}/Avatar/{avatar_id}.json"
+                avatar_data = _read_json_from_zip(zf, avatar_path)
+                if avatar_data:
+                    avatar_name = avatar_data.get("Name", "")
+                    avatar_id_int = avatar_data.get("Id", 0)
+                    if avatar_name and avatar_id_int:
+                        this_lang_id_to_name[avatar_id_int] = avatar_name
+            
+            id_to_name[lang] = this_lang_id_to_name
+            logger.debug(f"Processed {lang}: {len(this_lang_id_to_name)} items")
+    
+    # Step 3: Build response
     all_item_ids = id_to_name["CHS"].keys()
     logger.info(f"Fetched total {len(all_item_ids)} unique item IDs from Genshin Impact Snap.Metadata")
-
+    
+    resp = {}
     for item_id in all_item_ids:
         if item_id in DEPRECATED_ID:
             logger.warning(f"Item ID {item_id} is deprecated, skipping...")
             continue
         lang_dict = {}
-        for lang in snap_metadata_lang:
+        for lang in SNAP_METADATA_LANGS:
             item_name = id_to_name[lang].get(item_id, "")
             lang_code = lang.lower()
             lang_dict[lang_code] = item_name
         resp[item_id] = lang_dict
+    
     return resp
 
 
